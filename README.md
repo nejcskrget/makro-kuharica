@@ -12,7 +12,7 @@ uporabnik ima svoj račun (e-pošta + geslo), ti pa vsakemu ročno ustvariš
 dostop. Ko se nekdo prijavi na **novi napravi**, se prejšnja naprava z istim
 računom **samodejno odjavi** — to preverja aplikacija vsakih 20 sekund.
 
-### Nastavitev (enkraten korak, ~10 minut)
+### Nastavitev (enkraten korak, ~10 minut) 
 
 1. Pojdi na **https://supabase.com** → "Start your project" → brezplačna
    registracija → "New project" (izberi ime, geslo za bazo, regijo — npr.
