@@ -1769,7 +1769,7 @@ function useDayPlan(targetKcal, selectedDay) {
     } catch {
       // localStorage ni na voljo — jedilnik ostane samo v seji
     }
-  }, [zajtrkCode, kosiloCode, vecerjaCode, snacks, adjustSlot, selectedDay, loadedDay]);
+  }, [zajtrkCode, kosiloCode, vecerjaCode, snacks, adjustSlot, selectedDay]);
 
   const zajtrk = ZV.find((r) => r.code === zajtrkCode);
   const kosilo = K.find((r) => r.code === kosiloCode);
