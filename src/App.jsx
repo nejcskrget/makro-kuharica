@@ -15,7 +15,15 @@ import {
   Flame,
   ShoppingCart,
   Check,
+  LayoutDashboard,
+  NotebookPen,
 } from "lucide-react";
+import { supabase } from "./supabaseClient";
+import { useProfile, isProfileComplete } from "./useProfile";
+import { useDailyLog, todayStr } from "./useDailyLog";
+import { ProfileOnboarding } from "./ProfileOnboarding";
+import { DailyCheckIn } from "./DailyCheckIn";
+import { AdminDashboard } from "./AdminDashboard";
 
 /* =============================================================================
    MAKRO KUHARICA — premium prehranska aplikacija (SL)
@@ -125,7 +133,7 @@ const ZV = [
     steps: "Vse sestavine daš v lonček ter jih premešaš. Pustiš v hladilniku čez noč. Jagodičevje lahko dodaš zvečer ali zjutraj.",
     ing: [
       { name: "Ovseni kosmiči", unit: "g", qty: 35, rate: { kcal: 375, p: 13, f: 7, c: 66 } , priloga: true },
-      { name: "Grški jogurt 2 % m.m.", unit: "g", qty: 300, rate: { kcal: 63, p: 9, f: 2, c: 3.6 } },
+      { name: "Grški jogurt 2 % m.m.", unit: "g", qty: 300, rate: { kcal: 63, p: 9, f: 2, c: 3.6 }, core: true },
       { name: "Chia semena", unit: "g", qty: 15, rate: { kcal: 486, p: 17, f: 31, c: 42 } },
       { name: "Jagodičevje", unit: "g", qty: 70, rate: { kcal: 45, p: 0.7, f: 0.3, c: 10 } },
       { name: "Med", unit: "g", qty: 10, rate: { kcal: 304, p: 0.3, f: 0, c: 82 } , brand: "Medex" },
@@ -665,13 +673,13 @@ const SNACKS = [
   { name: "Napolitanke lešnik", unit: "g", defaultQty: 30, rate: { kcal: 505, p: 7.0, f: 20.4, c: 73.1 }, category: "Keksi in vafli" },
   { name: "Plazma keks", unit: "g", defaultQty: 30, rate: { kcal: 462, p: 6.4, f: 18.7, c: 66.8 }, category: "Keksi in vafli" },
   { name: "Domaćica keksi", unit: "g", defaultQty: 30, rate: { kcal: 465, p: 6.4, f: 18.8, c: 67.3 }, category: "Keksi in vafli" },
-  { name: "Manner Neapolitaner vafli", unit: "g", defaultQty: 25, rate: { kcal: 523, p: 7.2, f: 21.1, c: 75.7 }, category: "Keksi in vafli" },
+  { name: "Manner Neapolitaner vafli", unit: "g", defaultQty: 25, rate: { kcal: 523, p: 6.8, f: 19.9, c: 71.3 }, category: "Keksi in vafli" },
   { name: "Leibniz Butterkeks", unit: "g", defaultQty: 25, rate: { kcal: 463, p: 6.4, f: 18.7, c: 67.0 }, category: "Keksi in vafli" },
   { name: "McVitie's Digestive", unit: "g", defaultQty: 30, rate: { kcal: 471, p: 6.5, f: 19.0, c: 68.1 }, category: "Keksi in vafli" },
   { name: "Barni medvedki mlečni", unit: "g", defaultQty: 30, rate: { kcal: 440, p: 6.1, f: 17.8, c: 63.7 }, category: "Keksi in vafli" },
   { name: "Tedi keksi z lešnikom", unit: "g", defaultQty: 30, rate: { kcal: 500, p: 6.9, f: 20.2, c: 72.3 }, category: "Keksi in vafli" },
   { name: "Vitalis müsli keksi", unit: "g", defaultQty: 25, rate: { kcal: 430, p: 5.9, f: 17.4, c: 62.2 }, category: "Keksi in vafli" },
-  { name: "Crownfield vafli", unit: "g", defaultQty: 25, rate: { kcal: 520, p: 7.2, f: 21.0, c: 75.2 }, category: "Keksi in vafli" },
+  { name: "Crownfield vafli", unit: "g", defaultQty: 25, rate: { kcal: 520, p: 6.8, f: 19.9, c: 71.2 }, category: "Keksi in vafli" },
   { name: "Choco Leibniz", unit: "g", defaultQty: 25, rate: { kcal: 493, p: 6.8, f: 19.9, c: 71.3 }, category: "Keksi in vafli" },
   { name: "Haribo Goldbären", unit: "g", defaultQty: 30, rate: { kcal: 343, p: 6.9, f: 0.5, c: 77.0 }, category: "Bomboni in sladkarije" },
   { name: "Haribo Fun Mix", unit: "g", defaultQty: 30, rate: { kcal: 350, p: 5.5, f: 3.0, c: 78.0 }, category: "Bomboni in sladkarije" },
@@ -709,7 +717,7 @@ const SNACKS = [
   { name: "Popcorn mikrovalovni maslen", unit: "g", defaultQty: 30, rate: { kcal: 480, p: 7.6, f: 21.8, c: 63.3 }, category: "Popcorn in riževi vaflji" },
   { name: "Popcorn sladki karamelni", unit: "g", defaultQty: 30, rate: { kcal: 440, p: 7.0, f: 20.0, c: 58.0 }, category: "Popcorn in riževi vaflji" },
   { name: "Riževi vaflji naravni", unit: "g", defaultQty: 20, rate: { kcal: 387, p: 7.9, f: 2.0, c: 81.4 }, category: "Popcorn in riževi vaflji" },
-  { name: "Riževi vaflji čokoladni", unit: "g", defaultQty: 20, rate: { kcal: 460, p: 9.4, f: 2.4, c: 96.7 }, category: "Popcorn in riževi vaflji" },
+  { name: "Riževi vaflji čokoladni", unit: "g", defaultQty: 20, rate: { kcal: 460, p: 8.5, f: 2.2, c: 87.3 }, category: "Popcorn in riževi vaflji" },
   { name: "Magnum Classic", unit: "g", defaultQty: 80, rate: { kcal: 330, p: 4.7, f: 18.9, c: 34.2 }, category: "Sladoled in zamrznjeni prigrizki" },
   { name: "Cornetto Classico", unit: "g", defaultQty: 90, rate: { kcal: 250, p: 3.6, f: 14.3, c: 25.9 }, category: "Sladoled in zamrznjeni prigrizki" },
   { name: "Milka sladoledni sendvič", unit: "g", defaultQty: 100, rate: { kcal: 280, p: 4.0, f: 16.0, c: 29.0 }, category: "Sladoled in zamrznjeni prigrizki" },
@@ -757,6 +765,406 @@ const SNACKS = [
   { name: "Sadni sok (100 %)", unit: "ml", defaultQty: 200, rate: { kcal: 45, p: 0.5, f: 0.1, c: 10.5 } , category: "Pijače" },
   { name: "Rastlinski napitek (ovseni/mandljev)", unit: "ml", defaultQty: 200, rate: { kcal: 45, p: 0.5, f: 1.5, c: 7 } , category: "Pijače" },
   { name: "Ledeni čaj", unit: "ml", defaultQty: 250, rate: { kcal: 35, p: 0, f: 0, c: 8.5 } , category: "Pijače" },
+  { name: "Coca-Cola Original (pločevinka)", unit: "g", defaultQty: 330, rate: { kcal: 42, p: 0, f: 0, c: 10.6 }, category: "Pijače" },
+  { name: "Coca-Cola Zero (pločevinka)", unit: "g", defaultQty: 330, rate: { kcal: 0, p: 0, f: 0, c: 0.1 }, category: "Pijače" },
+  { name: "Fanta Pomaranča", unit: "g", defaultQty: 330, rate: { kcal: 45, p: 0, f: 0, c: 11 }, category: "Pijače" },
+  { name: "Sprite", unit: "g", defaultQty: 330, rate: { kcal: 39, p: 0, f: 0, c: 10.5 }, category: "Pijače" },
+  { name: "Cockta (brezalkoholna pijača)", unit: "g", defaultQty: 330, rate: { kcal: 39, p: 0.4, f: 0.0, c: 8.7 }, category: "Pijače" },
+  { name: "Radenska Klasik (mineralna voda)", unit: "g", defaultQty: 500, rate: { kcal: 0, p: 0.0, f: 0.0, c: 0.0 }, category: "Pijače" },
+  { name: "Radenska Naturelle", unit: "g", defaultQty: 500, rate: { kcal: 0, p: 0.0, f: 0.0, c: 0.0 }, category: "Pijače" },
+  { name: "Fruc breskev nektar", unit: "g", defaultQty: 200, rate: { kcal: 46, p: 0.5, f: 0.0, c: 10.2 }, category: "Pijače" },
+  { name: "Fruc pomaranča", unit: "g", defaultQty: 200, rate: { kcal: 45, p: 0.5, f: 0.0, c: 10.0 }, category: "Pijače" },
+  { name: "Jana negazirana voda", unit: "g", defaultQty: 500, rate: { kcal: 0, p: 0.0, f: 0.0, c: 0.0 }, category: "Pijače" },
+  { name: "Ledeni čaj breskev", unit: "g", defaultQty: 330, rate: { kcal: 27, p: 0.3, f: 0.0, c: 6.0 }, category: "Pijače" },
+  { name: "Red Bull energijska pijača", unit: "g", defaultQty: 250, rate: { kcal: 45, p: 0.5, f: 0, c: 11 }, category: "Pijače" },
+  { name: "Bravo sok jabolko", unit: "g", defaultQty: 200, rate: { kcal: 46, p: 0.5, f: 0.0, c: 10.2 }, category: "Pijače" },
+  { name: "Next sok mango", unit: "g", defaultQty: 200, rate: { kcal: 54, p: 0.6, f: 0.0, c: 12.0 }, category: "Pijače" },
+  { name: "Nescafe ledena kava", unit: "g", defaultQty: 250, rate: { kcal: 55, p: 0.6, f: 0.0, c: 12.2 }, category: "Pijače" },
+  { name: "Monster Energy", unit: "g", defaultQty: 500, rate: { kcal: 47, p: 0.5, f: 0.0, c: 10.4 }, category: "Pijače" },
+  { name: "Powerade modra pomaranča", unit: "g", defaultQty: 500, rate: { kcal: 24, p: 0.3, f: 0.0, c: 5.3 }, category: "Pijače" },
+  { name: "Activia jogurt naravni", unit: "g", defaultQty: 125, rate: { kcal: 65, p: 3.2, f: 2.0, c: 5.2 }, category: "Mlečni izdelki" },
+  { name: "Actimel jagoda", unit: "g", defaultQty: 100, rate: { kcal: 65, p: 3.2, f: 2.0, c: 5.2 }, category: "Mlečni izdelki" },
+  { name: "Danonino sadni jogurt", unit: "g", defaultQty: 100, rate: { kcal: 96, p: 4.8, f: 2.9, c: 7.7 }, category: "Mlečni izdelki" },
+  { name: "Mu jogurt sadni", unit: "g", defaultQty: 150, rate: { kcal: 90, p: 4.5, f: 2.7, c: 7.2 }, category: "Mlečni izdelki" },
+  { name: "Jogurt grški 10 % m.m.", unit: "g", defaultQty: 150, rate: { kcal: 130, p: 4, f: 10, c: 3.6 }, category: "Mlečni izdelki" },
+  { name: "Skyr naravni", unit: "g", defaultQty: 150, rate: { kcal: 63, p: 3.1, f: 1.9, c: 5.0 }, category: "Mlečni izdelki" },
+  { name: "Sirni namaz", unit: "g", defaultQty: 30, rate: { kcal: 260, p: 9, f: 23, c: 4 }, category: "Mlečni izdelki" },
+  { name: "Ementalec sir 45 % m.m.", unit: "g", defaultQty: 30, rate: { kcal: 380, p: 28, f: 30, c: 1 }, category: "Mlečni izdelki" },
+  { name: "Kravji sir Bohinjc", unit: "g", defaultQty: 30, rate: { kcal: 350, p: 25, f: 27, c: 2 }, category: "Mlečni izdelki" },
+  { name: "Skuta z zelišči (namaz)", unit: "g", defaultQty: 30, rate: { kcal: 150, p: 10, f: 9, c: 3 }, category: "Mlečni izdelki" },
+  { name: "Puding čokoladni", unit: "g", defaultQty: 125, rate: { kcal: 120, p: 3.5, f: 3, c: 19 }, category: "Mlečni izdelki" },
+  { name: "Aktivia pitni jogurt", unit: "g", defaultQty: 280, rate: { kcal: 65, p: 3.2, f: 2.0, c: 5.2 }, category: "Mlečni izdelki" },
+  { name: "Mleko čokoladno", unit: "g", defaultQty: 250, rate: { kcal: 75, p: 3.8, f: 2.2, c: 6.0 }, category: "Mlečni izdelki" },
+  { name: "Sadni jogurt pitni", unit: "g", defaultQty: 250, rate: { kcal: 80, p: 4.0, f: 2.4, c: 6.4 }, category: "Mlečni izdelki" },
+  { name: "Sirček (namazljivi sirček)", unit: "g", defaultQty: 20, rate: { kcal: 300, p: 10, f: 26, c: 3 }, category: "Mlečni izdelki" },
+  { name: "Sirni trikotnički", unit: "g", defaultQty: 30, rate: { kcal: 270, p: 9, f: 24, c: 4 }, category: "Mlečni izdelki" },
+  { name: "Ementalec v rezinah", unit: "g", defaultQty: 30, rate: { kcal: 380, p: 28, f: 30, c: 1 }, category: "Mlečni izdelki" },
+  { name: "Camembert", unit: "g", defaultQty: 30, rate: { kcal: 300, p: 20, f: 24, c: 1 }, category: "Mlečni izdelki" },
+  { name: "Walkers čips slani", unit: "g", defaultQty: 30, rate: { kcal: 532, p: 6.5, f: 34.1, c: 52.2 }, category: "Slani prigrizki" },
+  { name: "Pringles Hot & Spicy", unit: "g", defaultQty: 30, rate: { kcal: 522, p: 6.4, f: 33.5, c: 51.2 }, category: "Slani prigrizki" },
+  { name: "Tortilla čips soljeni", unit: "g", defaultQty: 30, rate: { kcal: 490, p: 6.0, f: 31.4, c: 48.1 }, category: "Slani prigrizki" },
+  { name: "Sirovi krekerji Ritz Cheese", unit: "g", defaultQty: 25, rate: { kcal: 490, p: 9.6, f: 18.1, c: 68.2 }, category: "Slani prigrizki" },
+  { name: "Fritos koruzni čips", unit: "g", defaultQty: 30, rate: { kcal: 540, p: 6.6, f: 34.6, c: 53.0 }, category: "Slani prigrizki" },
+  { name: "Chio Ranch čips", unit: "g", defaultQty: 30, rate: { kcal: 525, p: 6.4, f: 33.7, c: 51.5 }, category: "Slani prigrizki" },
+  { name: "Lay's Wavy Chips", unit: "g", defaultQty: 30, rate: { kcal: 540, p: 6.6, f: 34.6, c: 53.0 }, category: "Slani prigrizki" },
+  { name: "Estrella popcorn slan", unit: "g", defaultQty: 30, rate: { kcal: 480, p: 5.9, f: 30.8, c: 47.1 }, category: "Slani prigrizki" },
+  { name: "Tortilla Chips Chilli", unit: "g", defaultQty: 30, rate: { kcal: 470, p: 5.8, f: 30.2, c: 46.1 }, category: "Slani prigrizki" },
+  { name: "Milka Tender čokoladno pecivo", unit: "g", defaultQty: 25, rate: { kcal: 480, p: 6.2, f: 27.6, c: 51.6 }, category: "Čokolada in sladkarije" },
+  { name: "Kinder Pingui", unit: "g", defaultQty: 30, rate: { kcal: 380, p: 4.9, f: 21.8, c: 40.8 }, category: "Čokolada in sladkarije" },
+  { name: "Kinder Happy Hippo", unit: "g", defaultQty: 20.7, rate: { kcal: 530, p: 6.9, f: 30.4, c: 56.9 }, category: "Čokolada in sladkarije" },
+  { name: "Twix Xtra", unit: "g", defaultQty: 75, rate: { kcal: 495, p: 4.9, f: 24.4, c: 64.4 }, category: "Čokolada in sladkarije" },
+  { name: "Bounty Dark", unit: "g", defaultQty: 57, rate: { kcal: 469, p: 3.6, f: 26, c: 55 }, category: "Čokolada in sladkarije" },
+  { name: "Toblerone temna čokolada", unit: "g", defaultQty: 25, rate: { kcal: 517, p: 5.5, f: 29, c: 61 }, category: "Čokolada in sladkarije" },
+  { name: "Milka Alpine Milk mini kroglice", unit: "g", defaultQty: 25, rate: { kcal: 540, p: 7.0, f: 31.0, c: 58.0 }, category: "Čokolada in sladkarije" },
+  { name: "Merci Assorted", unit: "g", defaultQty: 25, rate: { kcal: 540, p: 7.0, f: 31.0, c: 58.0 }, category: "Čokolada in sladkarije" },
+  { name: "Raffaello", unit: "g", defaultQty: 37.5, rate: { kcal: 596, p: 7.1, f: 31.6, c: 59.2 }, category: "Čokolada in sladkarije" },
+  { name: "Lindor kroglice mlečne", unit: "g", defaultQty: 25, rate: { kcal: 555, p: 7.2, f: 31.9, c: 59.6 }, category: "Čokolada in sladkarije" },
+  { name: "Pez bonboni", unit: "g", defaultQty: 8.5, rate: { kcal: 390, p: 1.0, f: 1.0, c: 92.4 }, category: "Bomboni in sladkarije" },
+  { name: "Rozine (sušeno grozdje)", unit: "g", defaultQty: 30, rate: { kcal: 299, p: 3.1, f: 0.5, c: 79 }, category: "Sadje" },
+  { name: "Suhe fige", unit: "g", defaultQty: 30, rate: { kcal: 249, p: 3.3, f: 0.9, c: 63.9 }, category: "Sadje" },
+  { name: "Suhe marelice", unit: "g", defaultQty: 30, rate: { kcal: 241, p: 3.4, f: 0.5, c: 63 }, category: "Sadje" },
+  { name: "Datlji brez koščice", unit: "g", defaultQty: 30, rate: { kcal: 282, p: 2.5, f: 0.4, c: 75 }, category: "Sadje" },
+  { name: "Trail mix (oreščki in sadje)", unit: "g", defaultQty: 30, rate: { kcal: 450, p: 15.3, f: 38.9, c: 11.4 }, category: "Oreščki in semena" },
+  { name: "Kokosovi čips", unit: "g", defaultQty: 20, rate: { kcal: 630, p: 21.4, f: 54.5, c: 16.0 }, category: "Oreščki in semena" },
+  { name: "Ben & Jerry's Cookie Dough", unit: "g", defaultQty: 100, rate: { kcal: 250, p: 3.6, f: 14.3, c: 25.9 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Häagen-Dazs vanilija", unit: "g", defaultQty: 100, rate: { kcal: 245, p: 3.5, f: 14.0, c: 25.4 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Solero sladoledna štručka", unit: "g", defaultQty: 90, rate: { kcal: 130, p: 1.9, f: 7.4, c: 13.5 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Nogger Choc", unit: "g", defaultQty: 90, rate: { kcal: 260, p: 3.7, f: 14.9, c: 26.9 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Lujo sladoledna torta (rezina)", unit: "g", defaultQty: 100, rate: { kcal: 230, p: 3.3, f: 13.1, c: 23.8 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Listnato testo s slanino (zamrznjeno)", unit: "g", defaultQty: 50, rate: { kcal: 320, p: 6.3, f: 11.8, c: 44.5 }, category: "Slani prigrizki" },
+  { name: "Slani polžki s sirom (zamrznjeno pecivo)", unit: "g", defaultQty: 50, rate: { kcal: 350, p: 6.8, f: 12.9, c: 48.7 }, category: "Slani prigrizki" },
+  { name: "Mini pizza rezine (zamrznjene)", unit: "g", defaultQty: 100, rate: { kcal: 250, p: 4.0, f: 11.4, c: 33.0 }, category: "Popcorn in riževi vaflji" },
+  { name: "Corny Big čokolada", unit: "g", defaultQty: 50, rate: { kcal: 430, p: 6.3, f: 11.5, c: 71.3 }, category: "Žita in musli" },
+  { name: "Milka Little Moo bonboni", unit: "g", defaultQty: 30, rate: { kcal: 420, p: 1.1, f: 1.1, c: 99.5 }, category: "Bomboni in sladkarije" },
+  { name: "Werther's Original mehke karamele", unit: "g", defaultQty: 20, rate: { kcal: 435, p: 2, f: 9, c: 78 }, category: "Bomboni in sladkarije" },
+  { name: "Ledeni čaj FuzeTea limona", unit: "g", defaultQty: 330, rate: { kcal: 20, p: 0.2, f: 0.0, c: 4.4 }, category: "Pijače" },
+  { name: "Frutek sadna kašica jabolko", unit: "g", defaultQty: 100, rate: { kcal: 65, p: 3.2, f: 2.0, c: 5.2 }, category: "Mlečni izdelki" },
+  { name: "Fruc sadna rezina", unit: "g", defaultQty: 22, rate: { kcal: 350, p: 4.5, f: 20.1, c: 37.6 }, category: "Čokolada in sladkarije" },
+  { name: "Bebeto gumi bomboni", unit: "g", defaultQty: 30, rate: { kcal: 330, p: 0.9, f: 0.9, c: 78.2 }, category: "Bomboni in sladkarije" },
+  { name: "Kolibri gumi bomboni", unit: "g", defaultQty: 30, rate: { kcal: 340, p: 0.9, f: 0.9, c: 80.5 }, category: "Bomboni in sladkarije" },
+  { name: "Smoki jumbo", unit: "g", defaultQty: 30, rate: { kcal: 535, p: 6.6, f: 34.3, c: 52.5 }, category: "Slani prigrizki" },
+  { name: "Cheetos Flamin' Hot", unit: "g", defaultQty: 25, rate: { kcal: 545, p: 6.7, f: 35.0, c: 53.5 }, category: "Slani prigrizki" },
+  { name: "Corny Nut müsli batonček", unit: "g", defaultQty: 40, rate: { kcal: 500, p: 6.9, f: 12.7, c: 78.4 }, category: "Žita in musli" },
+  { name: "Prote proteinska ploščica", unit: "g", defaultQty: 35, rate: { kcal: 380, p: 5.6, f: 10.2, c: 63.0 }, category: "Žita in musli" },
+  { name: "Grenade Carb Killa", unit: "g", defaultQty: 60, rate: { kcal: 410, p: 6.0, f: 11.0, c: 68.0 }, category: "Žita in musli" },
+  { name: "Wasa Sport prepečenec", unit: "g", defaultQty: 25, rate: { kcal: 335, p: 6.6, f: 12.4, c: 46.6 }, category: "Slani prigrizki" },
+  { name: "Rakete čokoladne", unit: "g", defaultQty: 30, rate: { kcal: 500, p: 6.9, f: 20.2, c: 72.3 }, category: "Keksi in vafli" },
+  { name: "Kiki keksi", unit: "g", defaultQty: 30, rate: { kcal: 460, p: 6.4, f: 18.6, c: 66.6 }, category: "Keksi in vafli" },
+  { name: "Napolitanke vanilija", unit: "g", defaultQty: 30, rate: { kcal: 500, p: 6.9, f: 20.2, c: 72.3 }, category: "Keksi in vafli" },
+  { name: "Cappuccino v pločevinki", unit: "g", defaultQty: 250, rate: { kcal: 65, p: 0.7, f: 0.0, c: 14.4 }, category: "Pijače" },
+  { name: "Nestea limona (0,5 L)", unit: "g", defaultQty: 330, rate: { kcal: 20, p: 0.2, f: 0.0, c: 4.4 }, category: "Pijače" },
+  { name: "Cornetto Enigma", unit: "g", defaultQty: 110, rate: { kcal: 250, p: 3.6, f: 14.3, c: 25.9 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Twister sladoled", unit: "g", defaultQty: 70, rate: { kcal: 150, p: 2.1, f: 8.6, c: 15.5 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Calippo sadni sladoled", unit: "g", defaultQty: 105, rate: { kcal: 90, p: 1.3, f: 5.1, c: 9.3 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Kinder Maxi King", unit: "g", defaultQty: 35, rate: { kcal: 530, p: 6.9, f: 30.4, c: 56.9 }, category: "Čokolada in sladkarije" },
+  { name: "Milka Daim", unit: "g", defaultQty: 25, rate: { kcal: 510, p: 6.6, f: 29.3, c: 54.8 }, category: "Čokolada in sladkarije" },
+  { name: "Ricola zeliščni bonboni", unit: "g", defaultQty: 10, rate: { kcal: 390, p: 1.0, f: 1.0, c: 92.4 }, category: "Bomboni in sladkarije" },
+  { name: "Tuc Bits (mini krekerji)", unit: "g", defaultQty: 25, rate: { kcal: 490, p: 9.6, f: 18.1, c: 68.2 }, category: "Slani prigrizki" },
+  { name: "Chio Rings (obročki)", unit: "g", defaultQty: 30, rate: { kcal: 510, p: 6.3, f: 32.7, c: 50.0 }, category: "Slani prigrizki" },
+  { name: "Alesto praženi indijski oreščki s soljo", unit: "g", defaultQty: 30, rate: { kcal: 570, p: 19.3, f: 49.3, c: 14.5 }, category: "Oreščki in semena" },
+  { name: "Cottage sir (svež sir v zrnu)", unit: "g", defaultQty: 100, rate: { kcal: 98, p: 11, f: 4.3, c: 3.4 }, category: "Mlečni izdelki" },
+  { name: "Skuta poltrda", unit: "g", defaultQty: 100, rate: { kcal: 155, p: 13, f: 10, c: 3 }, category: "Mlečni izdelki" },
+  { name: "Schweppes Bitter Lemon", unit: "g", defaultQty: 250, rate: { kcal: 42, p: 0.5, f: 0.0, c: 9.3 }, category: "Pijače" },
+  { name: "San Pellegrino Aranciata", unit: "g", defaultQty: 330, rate: { kcal: 45, p: 0.5, f: 0.0, c: 10.0 }, category: "Pijače" },
+  { name: "Šola (sirni namaz trikotnički)", unit: "g", defaultQty: 30, rate: { kcal: 260, p: 9, f: 23, c: 4 }, category: "Mlečni izdelki" },
+  { name: "Zlati zajtrk koruzni flips", unit: "g", defaultQty: 30, rate: { kcal: 510, p: 6.3, f: 32.7, c: 50.0 }, category: "Slani prigrizki" },
+  { name: "Gorenjka Deda Mraz mlečna čokolada", unit: "g", defaultQty: 25, rate: { kcal: 545, p: 7.1, f: 31.3, c: 58.5 }, category: "Čokolada in sladkarije" },
+  { name: "Jelly Belly bonboni", unit: "g", defaultQty: 30, rate: { kcal: 375, p: 1.0, f: 1.0, c: 88.8 }, category: "Bomboni in sladkarije" },
+  { name: "Konopljina semena olupljena", unit: "g", defaultQty: 20, rate: { kcal: 555, p: 18.8, f: 48.0, c: 14.1 }, category: "Oreščki in semena" },
+  { name: "Corny Milk & Cereals", unit: "g", defaultQty: 30, rate: { kcal: 410, p: 6.0, f: 11.0, c: 68.0 }, category: "Žita in musli" },
+  { name: "Bela štruca kruh", unit: "g", defaultQty: 50, rate: { kcal: 265, p: 6.0, f: 2.4, c: 55.0 }, category: "Pekovski izdelki" },
+  { name: "Črn kruh", unit: "g", defaultQty: 50, rate: { kcal: 240, p: 5.4, f: 2.1, c: 49.8 }, category: "Pekovski izdelki" },
+  { name: "Polnozrnati kruh", unit: "g", defaultQty: 50, rate: { kcal: 230, p: 5.2, f: 2.0, c: 47.7 }, category: "Pekovski izdelki" },
+  { name: "Koruzni kruh", unit: "g", defaultQty: 50, rate: { kcal: 250, p: 5.6, f: 2.2, c: 51.9 }, category: "Pekovski izdelki" },
+  { name: "Ajdov kruh", unit: "g", defaultQty: 50, rate: { kcal: 245, p: 5.5, f: 2.2, c: 50.8 }, category: "Pekovski izdelki" },
+  { name: "Kajzerica (žemlja)", unit: "g", defaultQty: 60, rate: { kcal: 275, p: 6.2, f: 2.4, c: 57.1 }, category: "Pekovski izdelki" },
+  { name: "Bela žemlja", unit: "g", defaultQty: 50, rate: { kcal: 270, p: 6.1, f: 2.4, c: 56.0 }, category: "Pekovski izdelki" },
+  { name: "Rogljič maslen (croissant)", unit: "g", defaultQty: 60, rate: { kcal: 406, p: 8.1, f: 20.3, c: 47.7 }, category: "Pekovski izdelki" },
+  { name: "Čokoladni rogljič", unit: "g", defaultQty: 70, rate: { kcal: 420, p: 8.4, f: 21.0, c: 49.3 }, category: "Pekovski izdelki" },
+  { name: "Sirov burek", unit: "g", defaultQty: 200, rate: { kcal: 280, p: 8.4, f: 15.6, c: 26.6 }, category: "Pekovski izdelki" },
+  { name: "Mesni burek", unit: "g", defaultQty: 200, rate: { kcal: 284, p: 8.5, f: 15.8, c: 27.0 }, category: "Pekovski izdelki" },
+  { name: "Krompirjev burek", unit: "g", defaultQty: 200, rate: { kcal: 230, p: 6.9, f: 12.8, c: 21.9 }, category: "Pekovski izdelki" },
+  { name: "Jabolčni zavitek (štrudelj)", unit: "g", defaultQty: 100, rate: { kcal: 250, p: 5.0, f: 9.7, c: 35.6 }, category: "Pekovski izdelki" },
+  { name: "Skutin zavitek", unit: "g", defaultQty: 100, rate: { kcal: 260, p: 5.2, f: 10.1, c: 37.0 }, category: "Pekovski izdelki" },
+  { name: "Makov zavitek", unit: "g", defaultQty: 100, rate: { kcal: 270, p: 5.4, f: 10.5, c: 38.5 }, category: "Pekovski izdelki" },
+  { name: "Orehova potica (rezina)", unit: "g", defaultQty: 100, rate: { kcal: 380, p: 7.6, f: 14.8, c: 54.1 }, category: "Pekovski izdelki" },
+  { name: "Pehtranova potica (rezina)", unit: "g", defaultQty: 100, rate: { kcal: 340, p: 6.8, f: 13.2, c: 48.4 }, category: "Pekovski izdelki" },
+  { name: "Skutna potica (rezina)", unit: "g", defaultQty: 100, rate: { kcal: 320, p: 6.4, f: 12.4, c: 45.6 }, category: "Pekovski izdelki" },
+  { name: "Krof (domači)", unit: "g", defaultQty: 60, rate: { kcal: 350, p: 6.1, f: 15.6, c: 46.4 }, category: "Pekovski izdelki" },
+  { name: "Krof z marmelado", unit: "g", defaultQty: 70, rate: { kcal: 340, p: 6.0, f: 15.1, c: 45.1 }, category: "Pekovski izdelki" },
+  { name: "Buhtelj z marmelado", unit: "g", defaultQty: 80, rate: { kcal: 320, p: 5.6, f: 14.2, c: 42.4 }, category: "Pekovski izdelki" },
+  { name: "Štruklji orehovi (porcija)", unit: "g", defaultQty: 150, rate: { kcal: 300, p: 7.5, f: 10.0, c: 45.0 }, category: "Pekovski izdelki" },
+  { name: "Štruklji skutini (porcija)", unit: "g", defaultQty: 150, rate: { kcal: 220, p: 5.5, f: 7.3, c: 33.0 }, category: "Pekovski izdelki" },
+  { name: "Pica rezina salama", unit: "g", defaultQty: 150, rate: { kcal: 260, p: 9.1, f: 10.1, c: 33.1 }, category: "Pekovski izdelki" },
+  { name: "Pica rezina štirje sirovi", unit: "g", defaultQty: 150, rate: { kcal: 275, p: 9.6, f: 10.7, c: 35.1 }, category: "Pekovski izdelki" },
+  { name: "Pica rezina vegetarijanska", unit: "g", defaultQty: 150, rate: { kcal: 220, p: 7.7, f: 8.6, c: 28.1 }, category: "Pekovski izdelki" },
+  { name: "Sendvič šunka-sir", unit: "g", defaultQty: 150, rate: { kcal: 250, p: 9.4, f: 8.3, c: 34.4 }, category: "Pekovski izdelki" },
+  { name: "Sendvič piščanec solata", unit: "g", defaultQty: 180, rate: { kcal: 210, p: 7.9, f: 7.0, c: 28.9 }, category: "Pekovski izdelki" },
+  { name: "Toast sendvič (ocvrt)", unit: "g", defaultQty: 120, rate: { kcal: 290, p: 10.9, f: 9.7, c: 39.9 }, category: "Pekovski izdelki" },
+  { name: "Kremna rezina", unit: "g", defaultQty: 100, rate: { kcal: 320, p: 4.8, f: 16.0, c: 39.2 }, category: "Pekovski izdelki" },
+  { name: "Gibanica prekmurska (rezina)", unit: "g", defaultQty: 120, rate: { kcal: 330, p: 5.0, f: 16.5, c: 40.4 }, category: "Pekovski izdelki" },
+  { name: "Flancati", unit: "g", defaultQty: 30, rate: { kcal: 480, p: 8.4, f: 21.3, c: 63.6 }, category: "Pekovski izdelki" },
+  { name: "Miške (piškoti)", unit: "g", defaultQty: 40, rate: { kcal: 420, p: 7.4, f: 18.7, c: 55.7 }, category: "Pekovski izdelki" },
+  { name: "Linški oči (piškoti)", unit: "g", defaultQty: 40, rate: { kcal: 470, p: 8.2, f: 20.9, c: 62.3 }, category: "Pekovski izdelki" },
+  { name: "Vanilijeve rogljičke", unit: "g", defaultQty: 30, rate: { kcal: 490, p: 9.8, f: 24.5, c: 57.6 }, category: "Pekovski izdelki" },
+  { name: "Čajno pecivo mešano", unit: "g", defaultQty: 30, rate: { kcal: 450, p: 7.9, f: 20.0, c: 59.6 }, category: "Pekovski izdelki" },
+  { name: "Makrone (mandljevi)", unit: "g", defaultQty: 40, rate: { kcal: 400, p: 7.0, f: 17.8, c: 53.0 }, category: "Pekovski izdelki" },
+  { name: "Torta Sacher (rezina)", unit: "g", defaultQty: 120, rate: { kcal: 360, p: 5.4, f: 18.0, c: 44.1 }, category: "Pekovski izdelki" },
+  { name: "Torta Rakija (rezina)", unit: "g", defaultQty: 120, rate: { kcal: 370, p: 5.5, f: 18.5, c: 45.3 }, category: "Pekovski izdelki" },
+  { name: "Tiramisu (kos)", unit: "g", defaultQty: 120, rate: { kcal: 300, p: 4.5, f: 15.0, c: 36.8 }, category: "Pekovski izdelki" },
+  { name: "Torta Grand Marnier (rezina)", unit: "g", defaultQty: 120, rate: { kcal: 380, p: 5.7, f: 19.0, c: 46.5 }, category: "Pekovski izdelki" },
+  { name: "Medenjaki", unit: "g", defaultQty: 40, rate: { kcal: 400, p: 10.0, f: 13.3, c: 60.0 }, category: "Pekovski izdelki" },
+  { name: "Lect srce (medeno pecivo)", unit: "g", defaultQty: 50, rate: { kcal: 380, p: 9.5, f: 12.7, c: 57.0 }, category: "Pekovski izdelki" },
+  { name: "Sirovi štangeljni", unit: "g", defaultQty: 50, rate: { kcal: 420, p: 10.5, f: 14.0, c: 63.0 }, category: "Pekovski izdelki" },
+  { name: "Slani polžki (pekovski)", unit: "g", defaultQty: 80, rate: { kcal: 380, p: 9.5, f: 12.7, c: 57.0 }, category: "Pekovski izdelki" },
+  { name: "Pletenka (kvašeno pecivo)", unit: "g", defaultQty: 60, rate: { kcal: 290, p: 7.2, f: 9.7, c: 43.5 }, category: "Pekovski izdelki" },
+  { name: "Panettone (božični kolač)", unit: "g", defaultQty: 80, rate: { kcal: 380, p: 9.5, f: 12.7, c: 57.0 }, category: "Pekovski izdelki" },
+  { name: "Berlinski krof s čokolado", unit: "g", defaultQty: 80, rate: { kcal: 370, p: 6.5, f: 16.4, c: 49.0 }, category: "Pekovski izdelki" },
+  { name: "Kifeljc z lešnikovim nadevom", unit: "g", defaultQty: 70, rate: { kcal: 400, p: 10.0, f: 13.3, c: 60.0 }, category: "Pekovski izdelki" },
+  { name: "Makova štručka", unit: "g", defaultQty: 70, rate: { kcal: 350, p: 8.8, f: 11.7, c: 52.5 }, category: "Pekovski izdelki" },
+  { name: "Sirova štručka", unit: "g", defaultQty: 70, rate: { kcal: 300, p: 7.5, f: 10.0, c: 45.0 }, category: "Pekovski izdelki" },
+  { name: "Ovseni kruhki (piškoti)", unit: "g", defaultQty: 25, rate: { kcal: 440, p: 9.2, f: 3.6, c: 85.1 }, category: "Pekovski izdelki" },
+  { name: "Grisini palčke", unit: "g", defaultQty: 20, rate: { kcal: 400, p: 10.0, f: 13.3, c: 60.0 }, category: "Pekovski izdelki" },
+  { name: "Prepečenec navaden", unit: "g", defaultQty: 20, rate: { kcal: 380, p: 9.5, f: 12.7, c: 57.0 }, category: "Pekovski izdelki" },
+  { name: "Prepečenec polnozrnati", unit: "g", defaultQty: 20, rate: { kcal: 370, p: 9.2, f: 12.3, c: 55.5 }, category: "Pekovski izdelki" },
+  { name: "Toast kruh beli", unit: "g", defaultQty: 50, rate: { kcal: 265, p: 6.0, f: 2.4, c: 55.0 }, category: "Pekovski izdelki" },
+  { name: "Toast kruh polnozrnati", unit: "g", defaultQty: 50, rate: { kcal: 250, p: 5.6, f: 2.2, c: 51.9 }, category: "Pekovski izdelki" },
+  { name: "Tortilja pšenična", unit: "g", defaultQty: 60, rate: { kcal: 300, p: 7.5, f: 10.0, c: 45.0 }, category: "Pekovski izdelki" },
+  { name: "Lepinja (pita kruh)", unit: "g", defaultQty: 90, rate: { kcal: 275, p: 6.2, f: 2.4, c: 57.1 }, category: "Pekovski izdelki" },
+  { name: "Somun", unit: "g", defaultQty: 100, rate: { kcal: 280, p: 7.0, f: 9.3, c: 42.0 }, category: "Pekovski izdelki" },
+  { name: "Pogača z zelišči", unit: "g", defaultQty: 60, rate: { kcal: 290, p: 7.2, f: 9.7, c: 43.5 }, category: "Pekovski izdelki" },
+  { name: "Focaccia z oljkami", unit: "g", defaultQty: 60, rate: { kcal: 270, p: 6.8, f: 9.0, c: 40.5 }, category: "Pekovski izdelki" },
+  { name: "Baguette francoski", unit: "g", defaultQty: 50, rate: { kcal: 270, p: 6.8, f: 9.0, c: 40.5 }, category: "Pekovski izdelki" },
+  { name: "Ciabatta", unit: "g", defaultQty: 50, rate: { kcal: 265, p: 6.6, f: 8.8, c: 39.8 }, category: "Pekovski izdelki" },
+  { name: "Pletenka z rozinami", unit: "g", defaultQty: 60, rate: { kcal: 310, p: 7.8, f: 10.3, c: 46.5 }, category: "Pekovski izdelki" },
+  { name: "Orehova štručka mini", unit: "g", defaultQty: 50, rate: { kcal: 400, p: 10.0, f: 13.3, c: 60.0 }, category: "Pekovski izdelki" },
+  { name: "Makova štručka mini", unit: "g", defaultQty: 50, rate: { kcal: 390, p: 9.8, f: 13.0, c: 58.5 }, category: "Pekovski izdelki" },
+  { name: "Kranjska klobasa v testu", unit: "g", defaultQty: 150, rate: { kcal: 300, p: 7.5, f: 10.0, c: 45.0 }, category: "Pekovski izdelki" },
+  { name: "Hrenovka v testu", unit: "g", defaultQty: 100, rate: { kcal: 290, p: 7.2, f: 9.7, c: 43.5 }, category: "Pekovski izdelki" },
+  { name: "Pica burek (calzone)", unit: "g", defaultQty: 200, rate: { kcal: 260, p: 7.8, f: 14.4, c: 24.7 }, category: "Pekovski izdelki" },
+  { name: "Sirovi štruklji pečeni", unit: "g", defaultQty: 150, rate: { kcal: 250, p: 6.2, f: 8.3, c: 37.5 }, category: "Pekovski izdelki" },
+  { name: "Kruhki z bučnimi semeni", unit: "g", defaultQty: 50, rate: { kcal: 260, p: 5.8, f: 2.3, c: 53.9 }, category: "Pekovski izdelki" },
+  { name: "Grisini s sezamom", unit: "g", defaultQty: 20, rate: { kcal: 410, p: 10.2, f: 13.7, c: 61.5 }, category: "Pekovski izdelki" },
+  { name: "Rženi kruh", unit: "g", defaultQty: 50, rate: { kcal: 220, p: 5.0, f: 2.0, c: 45.6 }, category: "Pekovski izdelki" },
+  { name: "Big Mac", unit: "g", defaultQty: 211, rate: { kcal: 238, p: 11.9, f: 11.9, c: 20.9 }, category: "McDonald's" },
+  { name: "Hamburger", unit: "g", defaultQty: 105, rate: { kcal: 242, p: 12.1, f: 12.1, c: 21.2 }, category: "McDonald's" },
+  { name: "Cheeseburger", unit: "g", defaultQty: 119, rate: { kcal: 254, p: 12.7, f: 12.7, c: 22.2 }, category: "McDonald's" },
+  { name: "McChicken", unit: "g", defaultQty: 187, rate: { kcal: 234, p: 11.7, f: 11.7, c: 20.4 }, category: "McDonald's" },
+  { name: "Pommes frites (srednji)", unit: "g", defaultQty: 114, rate: { kcal: 289, p: 2.9, f: 14.1, c: 37.5 }, category: "McDonald's" },
+  { name: "Chicken McNuggets 6 kosov", unit: "g", defaultQty: 109, rate: { kcal: 243, p: 12.2, f: 12.2, c: 21.3 }, category: "McDonald's" },
+  { name: "Jabolčna pita", unit: "g", defaultQty: 80, rate: { kcal: 284, p: 2.1, f: 13.2, c: 39.0 }, category: "McDonald's" },
+  { name: "McSundae čokolada", unit: "g", defaultQty: 151, rate: { kcal: 184, p: 4.6, f: 4.1, c: 32.2 }, category: "McDonald's" },
+  { name: "Filet-o-Fish", unit: "g", defaultQty: 137, rate: { kcal: 242, p: 12.1, f: 12.1, c: 21.2 }, category: "McDonald's" },
+  { name: "Big Tasty", unit: "g", defaultQty: 300, rate: { kcal: 232, p: 11.6, f: 11.6, c: 20.3 }, category: "McDonald's" },
+  { name: "McFlurry Oreo", unit: "g", defaultQty: 166, rate: { kcal: 190, p: 4.8, f: 4.2, c: 33.3 }, category: "McDonald's" },
+  { name: "Coca-Cola (0,25 L)", unit: "g", defaultQty: 258, rate: { kcal: 43, p: 0, f: 0, c: 10.6 }, category: "McDonald's" },
+  { name: "Coca-Cola (0,5 L)", unit: "g", defaultQty: 516, rate: { kcal: 41, p: 0, f: 0, c: 10.6 }, category: "McDonald's" },
+  { name: "Coca-Cola Zero (0,4 L)", unit: "g", defaultQty: 410, rate: { kcal: 0, p: 0, f: 0, c: 0.1 }, category: "McDonald's" },
+  { name: "Coca-Cola Zero (0,5 L)", unit: "g", defaultQty: 516, rate: { kcal: 1, p: 0, f: 0, c: 0.1 }, category: "McDonald's" },
+  { name: "Egg McMuffin", unit: "g", defaultQty: 129, rate: { kcal: 225, p: 12.4, f: 10.0, c: 21.4 }, category: "McDonald's" },
+  { name: "McMuffin Ham & Egg", unit: "g", defaultQty: 136, rate: { kcal: 210, p: 11.5, f: 9.3, c: 19.9 }, category: "McDonald's" },
+  { name: "McMuffin Bacon & Egg", unit: "g", defaultQty: 138, rate: { kcal: 228, p: 12.6, f: 10.1, c: 21.7 }, category: "McDonald's" },
+  { name: "Piščančji trakci 8 kosov", unit: "g", defaultQty: 150, rate: { kcal: 150, p: 7.5, f: 7.5, c: 13.1 }, category: "McDonald's" },
+  { name: "McPlant", unit: "g", defaultQty: 231, rate: { kcal: 198, p: 8.9, f: 9.7, c: 18.8 }, category: "McDonald's" },
+  { name: "Fanta Zero", unit: "g", defaultQty: 330, rate: { kcal: 0.5, p: 0, f: 0, c: 0.1 }, category: "Pijače" },
+  { name: "Sprite Zero", unit: "g", defaultQty: 330, rate: { kcal: 0.3, p: 0, f: 0, c: 0.1 }, category: "Pijače" },
+  { name: "Schweppes Tonic", unit: "g", defaultQty: 250, rate: { kcal: 35, p: 0.4, f: 0.0, c: 7.8 }, category: "Pijače" },
+  { name: "Fructal 100% sok jabolko", unit: "g", defaultQty: 200, rate: { kcal: 46, p: 0.5, f: 0.0, c: 10.2 }, category: "Pijače" },
+  { name: "Fructal 100% sok pomaranča", unit: "g", defaultQty: 200, rate: { kcal: 45, p: 0.5, f: 0.0, c: 10.0 }, category: "Pijače" },
+  { name: "Rauch Happy Day breskev", unit: "g", defaultQty: 200, rate: { kcal: 48, p: 0.5, f: 0.0, c: 10.7 }, category: "Pijače" },
+  { name: "Granini jagoda-banana", unit: "g", defaultQty: 200, rate: { kcal: 52, p: 0.6, f: 0.0, c: 11.6 }, category: "Pijače" },
+  { name: "Costa ledena kava karamel", unit: "g", defaultQty: 250, rate: { kcal: 58, p: 0.6, f: 0.0, c: 12.9 }, category: "Pijače" },
+  { name: "Lipton ledeni čaj limona", unit: "g", defaultQty: 330, rate: { kcal: 24, p: 0.3, f: 0.0, c: 5.3 }, category: "Pijače" },
+  { name: "Sonnentor zeliščni čaj (brez kalorij)", unit: "g", defaultQty: 250, rate: { kcal: 0, p: 0.0, f: 0.0, c: 0.0 }, category: "Pijače" },
+  { name: "Isostar športni napitek pomaranča", unit: "g", defaultQty: 500, rate: { kcal: 24, p: 0.3, f: 0.0, c: 5.3 }, category: "Pijače" },
+  { name: "Gatorade limona", unit: "g", defaultQty: 500, rate: { kcal: 25, p: 0.3, f: 0.0, c: 5.6 }, category: "Pijače" },
+  { name: "Cedevita pomaranča (pripravljena)", unit: "g", defaultQty: 200, rate: { kcal: 20, p: 0.2, f: 0.0, c: 4.4 }, category: "Pijače" },
+  { name: "Fructal Jupi sirup", unit: "g", defaultQty: 50, rate: { kcal: 120, p: 1.3, f: 0.0, c: 26.7 }, category: "Pijače" },
+  { name: "Alpsko mleko polnomastno 3,5 %", unit: "g", defaultQty: 250, rate: { kcal: 64, p: 3.2, f: 1.9, c: 5.1 }, category: "Mlečni izdelki" },
+  { name: "Mleko posneto 0,5 %", unit: "g", defaultQty: 250, rate: { kcal: 35, p: 1.8, f: 1.0, c: 2.8 }, category: "Mlečni izdelki" },
+  { name: "Kislo mleko", unit: "g", defaultQty: 250, rate: { kcal: 58, p: 2.9, f: 1.7, c: 4.6 }, category: "Mlečni izdelki" },
+  { name: "Zeleni gozd smetana za stepanje 30 %", unit: "g", defaultQty: 30, rate: { kcal: 292, p: 2.2, f: 30, c: 3.3 }, category: "Mlečni izdelki" },
+  { name: "Kefir naravni", unit: "g", defaultQty: 250, rate: { kcal: 55, p: 2.8, f: 1.7, c: 4.4 }, category: "Mlečni izdelki" },
+  { name: "Jogurt bio naravni", unit: "g", defaultQty: 180, rate: { kcal: 62, p: 3.1, f: 1.9, c: 5.0 }, category: "Mlečni izdelki" },
+  { name: "Mascarpone", unit: "g", defaultQty: 50, rate: { kcal: 355, p: 5, f: 37, c: 3 }, category: "Mlečni izdelki" },
+  { name: "Rikotta", unit: "g", defaultQty: 50, rate: { kcal: 146, p: 11, f: 10, c: 3 }, category: "Mlečni izdelki" },
+  { name: "Feta sir", unit: "g", defaultQty: 50, rate: { kcal: 264, p: 15, f: 21, c: 3 }, category: "Mlečni izdelki" },
+  { name: "Mocarela kroglice", unit: "g", defaultQty: 60, rate: { kcal: 280, p: 22, f: 20, c: 2 }, category: "Mlečni izdelki" },
+  { name: "Parmezan naribani", unit: "g", defaultQty: 20, rate: { kcal: 392, p: 35, f: 26, c: 4 }, category: "Mlečni izdelki" },
+  { name: "Gouda sir 45 %", unit: "g", defaultQty: 30, rate: { kcal: 356, p: 25, f: 28, c: 2 }, category: "Mlečni izdelki" },
+  { name: "Topljeni sirčki (Lila trikotnički)", unit: "g", defaultQty: 30, rate: { kcal: 255, p: 10, f: 22, c: 4 }, category: "Mlečni izdelki" },
+  { name: "Sladoledni rogljiček Cornetto mini (multipack, kos)", unit: "g", defaultQty: 40, rate: { kcal: 250, p: 4, f: 14, c: 27 }, category: "Mlečni izdelki" },
+  { name: "Lay's Max hrustljavi rebrasti čips", unit: "g", defaultQty: 30, rate: { kcal: 540, p: 6.6, f: 34.6, c: 53.0 }, category: "Slani prigrizki" },
+  { name: "Doritos Cool Original", unit: "g", defaultQty: 30, rate: { kcal: 495, p: 6.1, f: 31.8, c: 48.6 }, category: "Slani prigrizki" },
+  { name: "Pringles Texas BBQ", unit: "g", defaultQty: 30, rate: { kcal: 530, p: 6.5, f: 34.0, c: 52.0 }, category: "Slani prigrizki" },
+  { name: "Chio čips sirov", unit: "g", defaultQty: 30, rate: { kcal: 527, p: 6.5, f: 33.8, c: 51.7 }, category: "Slani prigrizki" },
+  { name: "Bugles koruzni rožički", unit: "g", defaultQty: 30, rate: { kcal: 520, p: 6.4, f: 33.4, c: 51.0 }, category: "Slani prigrizki" },
+  { name: "Monster Munch pikantni", unit: "g", defaultQty: 30, rate: { kcal: 510, p: 6.3, f: 32.7, c: 50.0 }, category: "Slani prigrizki" },
+  { name: "Lorenz Naturals čips", unit: "g", defaultQty: 30, rate: { kcal: 540, p: 6.6, f: 34.6, c: 53.0 }, category: "Slani prigrizki" },
+  { name: "Estrella Dill čips", unit: "g", defaultQty: 30, rate: { kcal: 515, p: 6.3, f: 33.0, c: 50.5 }, category: "Slani prigrizki" },
+  { name: "Chio čips paprika XXL", unit: "g", defaultQty: 30, rate: { kcal: 528, p: 6.5, f: 33.9, c: 51.8 }, category: "Slani prigrizki" },
+  { name: "Snack Day Tortilla čips", unit: "g", defaultQty: 30, rate: { kcal: 495, p: 6.1, f: 31.8, c: 48.6 }, category: "Slani prigrizki" },
+  { name: "Milka Crispy Choco", unit: "g", defaultQty: 25, rate: { kcal: 505, p: 6.5, f: 29.0, c: 54.2 }, category: "Čokolada in sladkarije" },
+  { name: "Milka Bubbles", unit: "g", defaultQty: 25, rate: { kcal: 540, p: 7.0, f: 31.0, c: 58.0 }, category: "Čokolada in sladkarije" },
+  { name: "Kraš Bajadera lešnikova", unit: "g", defaultQty: 25, rate: { kcal: 520, p: 6.7, f: 29.9, c: 55.9 }, category: "Čokolada in sladkarije" },
+  { name: "Kraš Životinjsko carstvo", unit: "g", defaultQty: 25, rate: { kcal: 530, p: 6.9, f: 30.4, c: 56.9 }, category: "Čokolada in sladkarije" },
+  { name: "Ferrero Kinder Surprise", unit: "g", defaultQty: 20, rate: { kcal: 530, p: 6.9, f: 30.4, c: 56.9 }, category: "Čokolada in sladkarije" },
+  { name: "Milka Fibre Lova (žitni kroglici)", unit: "g", defaultQty: 25, rate: { kcal: 470, p: 6.1, f: 27.0, c: 50.5 }, category: "Čokolada in sladkarije" },
+  { name: "Nestlé Aero mlečna čokolada", unit: "g", defaultQty: 25, rate: { kcal: 530, p: 6.9, f: 30.4, c: 56.9 }, category: "Čokolada in sladkarije" },
+  { name: "Cote d'Or mlečna čokolada", unit: "g", defaultQty: 25, rate: { kcal: 545, p: 7.1, f: 31.3, c: 58.5 }, category: "Čokolada in sladkarije" },
+  { name: "Ritter Sport Corn Flakes", unit: "g", defaultQty: 25, rate: { kcal: 500, p: 8, f: 36, c: 51 }, category: "Čokolada in sladkarije" },
+  { name: "Lindt Lindor stick", unit: "g", defaultQty: 38, rate: { kcal: 555, p: 7.2, f: 31.9, c: 59.6 }, category: "Čokolada in sladkarije" },
+  { name: "Toblerone tiny mix", unit: "g", defaultQty: 25, rate: { kcal: 520, p: 5.5, f: 29, c: 61 }, category: "Čokolada in sladkarije" },
+  { name: "Milka Crispy Joghurt", unit: "g", defaultQty: 25, rate: { kcal: 500, p: 6.5, f: 28.7, c: 53.7 }, category: "Čokolada in sladkarije" },
+  { name: "Ledo lešnik vafelj", unit: "g", defaultQty: 30, rate: { kcal: 510, p: 7.1, f: 20.6, c: 73.8 }, category: "Keksi in vafli" },
+  { name: "Bahlsen Deloba", unit: "g", defaultQty: 25, rate: { kcal: 505, p: 7.0, f: 20.4, c: 73.1 }, category: "Keksi in vafli" },
+  { name: "Loacker Quadratini vanilija", unit: "g", defaultQty: 25, rate: { kcal: 525, p: 6.8, f: 19.9, c: 71.3 }, category: "Keksi in vafli" },
+  { name: "Milka vafelj Choco Wafer", unit: "g", defaultQty: 25, rate: { kcal: 495, p: 6.8, f: 20.0, c: 71.6 }, category: "Keksi in vafli" },
+  { name: "Kraš Zoo animal keksi", unit: "g", defaultQty: 30, rate: { kcal: 440, p: 6.1, f: 17.8, c: 63.7 }, category: "Keksi in vafli" },
+  { name: "Peto keksi z mlečnim nadevom", unit: "g", defaultQty: 30, rate: { kcal: 470, p: 6.5, f: 19.0, c: 68.0 }, category: "Keksi in vafli" },
+  { name: "Digestive čokoladni McVitie's", unit: "g", defaultQty: 30, rate: { kcal: 490, p: 6.8, f: 19.8, c: 70.9 }, category: "Keksi in vafli" },
+  { name: "Jaffa Cakes", unit: "g", defaultQty: 25, rate: { kcal: 375, p: 5.2, f: 15.2, c: 54.3 }, category: "Keksi in vafli" },
+  { name: "Kraš Mentos mint", unit: "g", defaultQty: 38, rate: { kcal: 395, p: 1.0, f: 1.0, c: 93.6 }, category: "Bomboni in sladkarije" },
+  { name: "Milka Mliječni bombon", unit: "g", defaultQty: 30, rate: { kcal: 450, p: 3, f: 9, c: 80 }, category: "Bomboni in sladkarije" },
+  { name: "Trolli gumi črvi", unit: "g", defaultQty: 30, rate: { kcal: 340, p: 0.9, f: 0.9, c: 80.5 }, category: "Bomboni in sladkarije" },
+  { name: "Haribo Šarene medvedke Sour", unit: "g", defaultQty: 30, rate: { kcal: 335, p: 0.9, f: 0.9, c: 79.3 }, category: "Bomboni in sladkarije" },
+  { name: "Rowntree's Fruit Pastilles", unit: "g", defaultQty: 30, rate: { kcal: 340, p: 0.9, f: 0.9, c: 80.5 }, category: "Bomboni in sladkarije" },
+  { name: "Golden Boy arašidi v čokoladi", unit: "g", defaultQty: 30, rate: { kcal: 510, p: 17.3, f: 44.1, c: 13.0 }, category: "Oreščki in semena" },
+  { name: "Alesto makadamija oreščki", unit: "g", defaultQty: 20, rate: { kcal: 718, p: 7.9, f: 75.8, c: 13.8 }, category: "Oreščki in semena" },
+  { name: "Alesto brazilski oreščki", unit: "g", defaultQty: 20, rate: { kcal: 656, p: 22.2, f: 56.7, c: 16.7 }, category: "Oreščki in semena" },
+  { name: "Alesto pekan oreščki", unit: "g", defaultQty: 20, rate: { kcal: 691, p: 23.4, f: 59.7, c: 17.6 }, category: "Oreščki in semena" },
+  { name: "Chia semena", unit: "g", defaultQty: 15, rate: { kcal: 486, p: 16.5, f: 42.0, c: 12.4 }, category: "Oreščki in semena" },
+  { name: "Laneno seme", unit: "g", defaultQty: 15, rate: { kcal: 534, p: 18.1, f: 46.2, c: 13.6 }, category: "Oreščki in semena" },
+  { name: "Magnum Almond", unit: "g", defaultQty: 80, rate: { kcal: 340, p: 4.9, f: 19.4, c: 35.2 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Magnum White", unit: "g", defaultQty: 80, rate: { kcal: 325, p: 4.6, f: 18.6, c: 33.7 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Milka sladoled v kornetu", unit: "g", defaultQty: 110, rate: { kcal: 270, p: 3.9, f: 15.4, c: 28.0 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Frigo Big Bang", unit: "g", defaultQty: 90, rate: { kcal: 240, p: 3.4, f: 13.7, c: 24.9 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Ljubljanske mlekarne rodoljub sladoled vanilija (1 L)", unit: "g", defaultQty: 100, rate: { kcal: 190, p: 2.7, f: 10.9, c: 19.7 }, category: "Sladoled in zamrznjeni prigrizki" },
+  { name: "Sunar krekerji polnozrnati", unit: "g", defaultQty: 25, rate: { kcal: 440, p: 8.6, f: 16.3, c: 61.2 }, category: "Slani prigrizki" },
+  { name: "Rico krekerji", unit: "g", defaultQty: 25, rate: { kcal: 470, p: 9.2, f: 17.4, c: 65.4 }, category: "Slani prigrizki" },
+  { name: "Cracotte prepečenec", unit: "g", defaultQty: 20, rate: { kcal: 410, p: 8.0, f: 15.2, c: 57.0 }, category: "Slani prigrizki" },
+  { name: "Belvita zajtrkovni keksi", unit: "g", defaultQty: 50, rate: { kcal: 440, p: 8.6, f: 16.3, c: 61.2 }, category: "Slani prigrizki" },
+  { name: "Fitness müsli batonček", unit: "g", defaultQty: 23.5, rate: { kcal: 375, p: 5.5, f: 10.1, c: 62.2 }, category: "Žita in musli" },
+  { name: "Kellogg's Crunchy müsli batonček", unit: "g", defaultQty: 25, rate: { kcal: 435, p: 6.4, f: 11.7, c: 72.1 }, category: "Žita in musli" },
+  { name: "Emco müsli batonček jabolko-cimet", unit: "g", defaultQty: 30, rate: { kcal: 390, p: 5.7, f: 10.5, c: 64.7 }, category: "Žita in musli" },
+  { name: "Popcorn slan mikrovalovni", unit: "g", defaultQty: 30, rate: { kcal: 500, p: 8.0, f: 22.7, c: 65.9 }, category: "Popcorn in riževi vaflji" },
+  { name: "Riževi vaflji s soljo", unit: "g", defaultQty: 20, rate: { kcal: 385, p: 7.7, f: 2.1, c: 83.7 }, category: "Popcorn in riževi vaflji" },
+  { name: "Klasje mlečni rogljiček", unit: "g", defaultQty: 70, rate: { kcal: 290, p: 3.6, f: 15.1, c: 33.2 }, category: "Slovenski specialiteti" },
+  { name: "Kraš Kiki bonboni", unit: "g", defaultQty: 30, rate: { kcal: 395, p: 4.9, f: 20.6, c: 45.3 }, category: "Slovenski specialiteti" },
+  { name: "Fructal marmelada mešano sadje", unit: "g", defaultQty: 20, rate: { kcal: 250, p: 3.1, f: 13.0, c: 28.6 }, category: "Slovenski specialiteti" },
+  { name: "Medex med cvetlični", unit: "g", defaultQty: 20, rate: { kcal: 304, p: 3.8, f: 15.8, c: 34.8 }, category: "Slovenski specialiteti" },
+  { name: "Zlato polje ovsena kaša instant", unit: "g", defaultQty: 40, rate: { kcal: 370, p: 5.3, f: 19.4, c: 44.0 }, category: "Drugo" },
+  { name: "Kellogg's Corn Flakes", unit: "g", defaultQty: 30, rate: { kcal: 378, p: 5.4, f: 19.8, c: 45.0 }, category: "Drugo" },
+  { name: "Nestlé Chocapic kosmiči", unit: "g", defaultQty: 30, rate: { kcal: 395, p: 5.6, f: 20.7, c: 47.0 }, category: "Drugo" },
+  { name: "Kellogg's Crunchy Nut", unit: "g", defaultQty: 30, rate: { kcal: 453, p: 6.5, f: 23.7, c: 53.9 }, category: "Drugo" },
+  { name: "Muesli Crunchy Alpen Gold", unit: "g", defaultQty: 45, rate: { kcal: 470, p: 6.7, f: 24.6, c: 56.0 }, category: "Drugo" },
+  { name: "Granola z medom in oreščki", unit: "g", defaultQty: 45, rate: { kcal: 460, p: 6.6, f: 24.1, c: 54.8 }, category: "Drugo" },
+  { name: "Tuc Chips slani", unit: "g", defaultQty: 30, rate: { kcal: 510, p: 6.3, f: 32.7, c: 50.0 }, category: "Slani prigrizki" },
+  { name: "Lay's Light manj maščob", unit: "g", defaultQty: 30, rate: { kcal: 470, p: 5.8, f: 30.2, c: 46.1 }, category: "Slani prigrizki" },
+  { name: "Pringles Paprika mini", unit: "g", defaultQty: 30, rate: { kcal: 525, p: 6.4, f: 33.7, c: 51.5 }, category: "Slani prigrizki" },
+  { name: "Kinder Schoko-Bons", unit: "g", defaultQty: 25, rate: { kcal: 545, p: 7.1, f: 31.3, c: 58.5 }, category: "Čokolada in sladkarije" },
+  { name: "Nesquik čokoladne kroglice v čokoladi", unit: "g", defaultQty: 25, rate: { kcal: 510, p: 6.6, f: 29.3, c: 54.8 }, category: "Čokolada in sladkarije" },
+  { name: "Milka Sarcastik bonbon", unit: "g", defaultQty: 30, rate: { kcal: 450, p: 3, f: 9, c: 80 }, category: "Bomboni in sladkarije" },
+  { name: "Slani mandlji praženi", unit: "g", defaultQty: 25, rate: { kcal: 608, p: 20.6, f: 52.6, c: 15.5 }, category: "Oreščki in semena" },
+  { name: "Voda z okusom limone (negazirana)", unit: "g", defaultQty: 500, rate: { kcal: 18, p: 0.2, f: 0.0, c: 4.0 }, category: "Pijače" },
+  { name: "Sirni narezek gouda-ementalec (mix pack)", unit: "g", defaultQty: 30, rate: { kcal: 360, p: 26, f: 28, c: 2 }, category: "Mlečni izdelki" },
+  { name: "Kraš Baccio di Dama", unit: "g", defaultQty: 25, rate: { kcal: 530, p: 6.9, f: 20.3, c: 72.8 }, category: "Keksi in vafli" },
+  { name: "Sirova štruca (polnozrnata)", unit: "g", defaultQty: 50, rate: { kcal: 255, p: 5.7, f: 2.3, c: 52.9 }, category: "Pekovski izdelki" },
+  { name: "Ovseni kruh", unit: "g", defaultQty: 50, rate: { kcal: 235, p: 5.3, f: 2.1, c: 48.8 }, category: "Pekovski izdelki" },
+  { name: "Bučni kruh", unit: "g", defaultQty: 50, rate: { kcal: 255, p: 5.7, f: 2.3, c: 52.9 }, category: "Pekovski izdelki" },
+  { name: "Kmečki kruh (mešan)", unit: "g", defaultQty: 50, rate: { kcal: 250, p: 5.6, f: 2.2, c: 51.9 }, category: "Pekovski izdelki" },
+  { name: "Sadni kruh (s suhim sadjem)", unit: "g", defaultQty: 50, rate: { kcal: 280, p: 6.3, f: 2.5, c: 58.1 }, category: "Pekovski izdelki" },
+  { name: "Semenka štručka", unit: "g", defaultQty: 60, rate: { kcal: 270, p: 6.8, f: 9.0, c: 40.5 }, category: "Pekovski izdelki" },
+  { name: "Sezamova štručka", unit: "g", defaultQty: 60, rate: { kcal: 275, p: 6.9, f: 9.2, c: 41.2 }, category: "Pekovski izdelki" },
+  { name: "Makova štručka (velika)", unit: "g", defaultQty: 80, rate: { kcal: 270, p: 6.8, f: 9.0, c: 40.5 }, category: "Pekovski izdelki" },
+  { name: "Fokačja z rožmarinom", unit: "g", defaultQty: 60, rate: { kcal: 275, p: 6.9, f: 9.2, c: 41.2 }, category: "Pekovski izdelki" },
+  { name: "Pizza calzone sir-šunka", unit: "g", defaultQty: 250, rate: { kcal: 265, p: 6.6, f: 8.8, c: 39.8 }, category: "Pekovski izdelki" },
+  { name: "Pizza margherita (kos)", unit: "g", defaultQty: 150, rate: { kcal: 240, p: 6.0, f: 8.0, c: 36.0 }, category: "Pekovski izdelki" },
+  { name: "Pizza salama-gobice (kos)", unit: "g", defaultQty: 150, rate: { kcal: 270, p: 6.8, f: 9.0, c: 40.5 }, category: "Pekovski izdelki" },
+  { name: "Pizza tuna (kos)", unit: "g", defaultQty: 150, rate: { kcal: 235, p: 5.9, f: 7.8, c: 35.2 }, category: "Pekovski izdelki" },
+  { name: "Sirovi rogljiček (croissant s sirom)", unit: "g", defaultQty: 70, rate: { kcal: 320, p: 6.4, f: 16.0, c: 37.6 }, category: "Pekovski izdelki" },
+  { name: "Šunka rogljiček", unit: "g", defaultQty: 80, rate: { kcal: 300, p: 6.0, f: 15.0, c: 35.2 }, category: "Pekovski izdelki" },
+  { name: "Pariški rogljič (maslen)", unit: "g", defaultQty: 65, rate: { kcal: 410, p: 8.2, f: 20.5, c: 48.2 }, category: "Pekovski izdelki" },
+  { name: "Griz štručka (mafin slog)", unit: "g", defaultQty: 70, rate: { kcal: 350, p: 8.8, f: 11.7, c: 52.5 }, category: "Pekovski izdelki" },
+  { name: "Muffin borovnice", unit: "g", defaultQty: 90, rate: { kcal: 370, p: 9.2, f: 12.3, c: 55.5 }, category: "Pekovski izdelki" },
+  { name: "Muffin čokolada", unit: "g", defaultQty: 90, rate: { kcal: 400, p: 10.0, f: 13.3, c: 60.0 }, category: "Pekovski izdelki" },
+  { name: "Cimet polžek (cinnamon roll)", unit: "g", defaultQty: 100, rate: { kcal: 390, p: 9.8, f: 13.0, c: 58.5 }, category: "Pekovski izdelki" },
+  { name: "Donut glazirani", unit: "g", defaultQty: 60, rate: { kcal: 380, p: 9.5, f: 12.7, c: 57.0 }, category: "Pekovski izdelki" },
+  { name: "Donut čokoladni", unit: "g", defaultQty: 65, rate: { kcal: 400, p: 10.0, f: 13.3, c: 60.0 }, category: "Pekovski izdelki" },
+  { name: "Eclair (šoto s smetano)", unit: "g", defaultQty: 90, rate: { kcal: 300, p: 7.5, f: 10.0, c: 45.0 }, category: "Pekovski izdelki" },
+  { name: "Profiterol (kos)", unit: "g", defaultQty: 30, rate: { kcal: 290, p: 7.2, f: 9.7, c: 43.5 }, category: "Pekovski izdelki" },
+  { name: "Kremšnita (Bled)", unit: "g", defaultQty: 130, rate: { kcal: 320, p: 8.0, f: 10.7, c: 48.0 }, category: "Pekovski izdelki" },
+  { name: "Bavarska rezina", unit: "g", defaultQty: 100, rate: { kcal: 310, p: 7.8, f: 10.3, c: 46.5 }, category: "Pekovski izdelki" },
+  { name: "Praline sadna torta (rezina)", unit: "g", defaultQty: 120, rate: { kcal: 290, p: 4.3, f: 14.5, c: 35.5 }, category: "Pekovski izdelki" },
+  { name: "Rdeča žamet torta (rezina)", unit: "g", defaultQty: 120, rate: { kcal: 370, p: 5.5, f: 18.5, c: 45.3 }, category: "Pekovski izdelki" },
+  { name: "Cheesecake New York (rezina)", unit: "g", defaultQty: 120, rate: { kcal: 350, p: 8.8, f: 11.7, c: 52.5 }, category: "Pekovski izdelki" },
+  { name: "Panna cotta (kos)", unit: "g", defaultQty: 100, rate: { kcal: 220, p: 5.5, f: 7.3, c: 33.0 }, category: "Pekovski izdelki" },
+  { name: "Palačinke z marmelado (2 kosa)", unit: "g", defaultQty: 150, rate: { kcal: 260, p: 6.5, f: 8.7, c: 39.0 }, category: "Pekovski izdelki" },
+  { name: "Palačinke z Nutello (2 kosa)", unit: "g", defaultQty: 160, rate: { kcal: 340, p: 8.5, f: 11.3, c: 51.0 }, category: "Pekovski izdelki" },
+  { name: "Vaflji s smetano", unit: "g", defaultQty: 150, rate: { kcal: 300, p: 7.5, f: 10.0, c: 45.0 }, category: "Pekovski izdelki" },
+  { name: "Churros (porcija)", unit: "g", defaultQty: 100, rate: { kcal: 420, p: 10.5, f: 14.0, c: 63.0 }, category: "Pekovski izdelki" },
+  { name: "Langoš s česnom", unit: "g", defaultQty: 200, rate: { kcal: 270, p: 6.8, f: 9.0, c: 40.5 }, category: "Pekovski izdelki" },
+  { name: "Pica rezina hawai", unit: "g", defaultQty: 150, rate: { kcal: 255, p: 8.9, f: 9.9, c: 32.5 }, category: "Pekovski izdelki" },
+  { name: "Pica rezina pikantna salama", unit: "g", defaultQty: 150, rate: { kcal: 280, p: 9.8, f: 10.9, c: 35.7 }, category: "Pekovski izdelki" },
+  { name: "Sendvič tuna solata", unit: "g", defaultQty: 170, rate: { kcal: 220, p: 8.2, f: 7.3, c: 30.3 }, category: "Pekovski izdelki" },
+  { name: "Sendvič vegetarijanski (zelenjavni)", unit: "g", defaultQty: 160, rate: { kcal: 190, p: 7.1, f: 6.3, c: 26.1 }, category: "Pekovski izdelki" },
+  { name: "Sendvič jajčna solata", unit: "g", defaultQty: 160, rate: { kcal: 240, p: 9.0, f: 8.0, c: 33.0 }, category: "Pekovski izdelki" },
+  { name: "Baguette sendvič šunka-sir", unit: "g", defaultQty: 200, rate: { kcal: 260, p: 9.8, f: 8.7, c: 35.8 }, category: "Pekovski izdelki" },
+  { name: "Bagel sezamov", unit: "g", defaultQty: 90, rate: { kcal: 270, p: 6.8, f: 9.0, c: 40.5 }, category: "Pekovski izdelki" },
+  { name: "Bagel sirov namaz", unit: "g", defaultQty: 150, rate: { kcal: 260, p: 6.5, f: 8.7, c: 39.0 }, category: "Pekovski izdelki" },
+  { name: "Pretzel (kranjski precelj) slan", unit: "g", defaultQty: 90, rate: { kcal: 290, p: 7.2, f: 9.7, c: 43.5 }, category: "Pekovski izdelki" },
+  { name: "Pretzel s sirom", unit: "g", defaultQty: 110, rate: { kcal: 320, p: 8.0, f: 10.7, c: 48.0 }, category: "Pekovski izdelki" },
+  { name: "Hot dog (klasični)", unit: "g", defaultQty: 150, rate: { kcal: 270, p: 6.8, f: 9.0, c: 40.5 }, category: "Pekovski izdelki" },
+  { name: "Sendvič salama-kumarice", unit: "g", defaultQty: 150, rate: { kcal: 270, p: 10.1, f: 9.0, c: 37.1 }, category: "Pekovski izdelki" },
+  { name: "Toast s pršutom in sirom", unit: "g", defaultQty: 150, rate: { kcal: 300, p: 11.2, f: 10.0, c: 41.2 }, category: "Pekovski izdelki" },
+  { name: "Toast vegetarijanski", unit: "g", defaultQty: 140, rate: { kcal: 230, p: 8.6, f: 7.7, c: 31.6 }, category: "Pekovski izdelki" },
+  { name: "Pica burek z mesom", unit: "g", defaultQty: 220, rate: { kcal: 300, p: 9.0, f: 16.7, c: 28.5 }, category: "Pekovski izdelki" },
+  { name: "Zeljnati burek", unit: "g", defaultQty: 200, rate: { kcal: 235, p: 7.0, f: 13.1, c: 22.3 }, category: "Pekovski izdelki" },
+  { name: "Jabolčni burek (sladki)", unit: "g", defaultQty: 180, rate: { kcal: 270, p: 8.1, f: 15.0, c: 25.6 }, category: "Pekovski izdelki" },
+  { name: "Skutin burek (sladki)", unit: "g", defaultQty: 180, rate: { kcal: 265, p: 7.9, f: 14.7, c: 25.2 }, category: "Pekovski izdelki" },
+  { name: "Orehovi rogljički (mini)", unit: "g", defaultQty: 50, rate: { kcal: 430, p: 8.6, f: 21.5, c: 50.5 }, category: "Pekovski izdelki" },
+  { name: "Makovi rogljički (mini)", unit: "g", defaultQty: 50, rate: { kcal: 420, p: 8.4, f: 21.0, c: 49.3 }, category: "Pekovski izdelki" },
+  { name: "Kokosove kocke", unit: "g", defaultQty: 50, rate: { kcal: 410, p: 10.2, f: 13.7, c: 61.5 }, category: "Pekovski izdelki" },
+  { name: "Rum kroglice", unit: "g", defaultQty: 20, rate: { kcal: 420, p: 10.5, f: 14.0, c: 63.0 }, category: "Pekovski izdelki" },
+  { name: "Piškoti Linzer (2 kosa)", unit: "g", defaultQty: 40, rate: { kcal: 480, p: 12.0, f: 16.0, c: 72.0 }, category: "Pekovski izdelki" },
+  { name: "Biskvitna rulada z marmelado (rezina)", unit: "g", defaultQty: 100, rate: { kcal: 320, p: 8.0, f: 10.7, c: 48.0 }, category: "Pekovski izdelki" },
+  { name: "Orehova rulada (rezina)", unit: "g", defaultQty: 100, rate: { kcal: 370, p: 9.2, f: 12.3, c: 55.5 }, category: "Pekovski izdelki" },
+  { name: "Makova rulada (rezina)", unit: "g", defaultQty: 100, rate: { kcal: 360, p: 9.0, f: 12.0, c: 54.0 }, category: "Pekovski izdelki" },
+  { name: "Bučna štrukljev pita (kos)", unit: "g", defaultQty: 150, rate: { kcal: 240, p: 6.0, f: 8.0, c: 36.0 }, category: "Pekovski izdelki" },
+  { name: "Ajdovi žganci s ocvirki (porcija)", unit: "g", defaultQty: 300, rate: { kcal: 320, p: 8.0, f: 10.7, c: 48.0 }, category: "Pekovski izdelki" },
+  { name: "Štruklji z mesom (kosilo, porcija)", unit: "g", defaultQty: 300, rate: { kcal: 260, p: 6.5, f: 8.7, c: 39.0 }, category: "Pekovski izdelki" },
+  { name: "Golaž z žlikrofi (porcija)", unit: "g", defaultQty: 400, rate: { kcal: 220, p: 3.9, f: 9.8, c: 29.2 }, category: "Pekovski izdelki" },
+  { name: "Jota (enolončnica, porcija)", unit: "g", defaultQty: 350, rate: { kcal: 150, p: 3.8, f: 5.0, c: 22.5 }, category: "Pekovski izdelki" },
+  { name: "Ričet (enolončnica, porcija)", unit: "g", defaultQty: 350, rate: { kcal: 140, p: 3.5, f: 4.7, c: 21.0 }, category: "Pekovski izdelki" },
+  { name: "Pleskavica s pecivom", unit: "g", defaultQty: 250, rate: { kcal: 300, p: 7.5, f: 10.0, c: 45.0 }, category: "Pekovski izdelki" },
+  { name: "Čevapčiči (5 kosov) s kruhom", unit: "g", defaultQty: 250, rate: { kcal: 290, p: 6.5, f: 2.6, c: 60.2 }, category: "Pekovski izdelki" },
+  { name: "Krompir solata (priloga)", unit: "g", defaultQty: 150, rate: { kcal: 130, p: 3.2, f: 4.3, c: 19.5 }, category: "Pekovski izdelki" },
+  { name: "Zeljna solata (priloga)", unit: "g", defaultQty: 150, rate: { kcal: 60, p: 1.5, f: 2.0, c: 9.0 }, category: "Pekovski izdelki" },
+  { name: "Pomfri (gostinski, porcija)", unit: "g", defaultQty: 150, rate: { kcal: 300, p: 7.5, f: 10.0, c: 45.0 }, category: "Pekovski izdelki" },
+  { name: "Ocvrti sir (porcija)", unit: "g", defaultQty: 150, rate: { kcal: 340, p: 8.5, f: 11.3, c: 51.0 }, category: "Pekovski izdelki" },
+  { name: "Dunajski zrezek s prilogo (porcija)", unit: "g", defaultQty: 350, rate: { kcal: 320, p: 8.0, f: 10.7, c: 48.0 }, category: "Pekovski izdelki" },
+  { name: "Piščančja solata (porcija)", unit: "g", defaultQty: 300, rate: { kcal: 180, p: 4.5, f: 6.0, c: 27.0 }, category: "Pekovski izdelki" },
+  { name: "Lazanja (porcija)", unit: "g", defaultQty: 350, rate: { kcal: 220, p: 5.5, f: 7.3, c: 33.0 }, category: "Pekovski izdelki" },
+  { name: "Lasagne bolognese (porcija, gostinsko)", unit: "g", defaultQty: 350, rate: { kcal: 230, p: 5.8, f: 7.7, c: 34.5 }, category: "Pekovski izdelki" },
+  { name: "Rižota z gobami (porcija)", unit: "g", defaultQty: 300, rate: { kcal: 180, p: 4.5, f: 6.0, c: 27.0 }, category: "Pekovski izdelki" },
+  { name: "Testenine s pestom (porcija)", unit: "g", defaultQty: 300, rate: { kcal: 210, p: 5.2, f: 7.0, c: 31.5 }, category: "Pekovski izdelki" },
+  { name: "Njoki s siром (porcija)", unit: "g", defaultQty: 300, rate: { kcal: 200, p: 5.0, f: 6.7, c: 30.0 }, category: "Pekovski izdelki" },
+  { name: "Kremna kava (cappuccino s sladkorjem)", unit: "g", defaultQty: 200, rate: { kcal: 90, p: 1.3, f: 4.5, c: 11.0 }, category: "Pekovski izdelki" },
+  { name: "Vroča čokolada (kavarna)", unit: "g", defaultQty: 250, rate: { kcal: 220, p: 5.5, f: 7.3, c: 33.0 }, category: "Pekovski izdelki" },
+  { name: "Frape (ledena kava s smetano)", unit: "g", defaultQty: 300, rate: { kcal: 180, p: 4.5, f: 6.0, c: 27.0 }, category: "Pekovski izdelki" },
+  { name: "Sladoledni kupček (2 kepici, sladoledarna)", unit: "g", defaultQty: 100, rate: { kcal: 180, p: 4.5, f: 6.0, c: 27.0 }, category: "Pekovski izdelki" },
+  { name: "Sladoledni kupček s smetano (sladoledarna)", unit: "g", defaultQty: 150, rate: { kcal: 260, p: 6.5, f: 8.7, c: 39.0 }, category: "Pekovski izdelki" },
+  { name: "Sladoledna kupa (banana split)", unit: "g", defaultQty: 250, rate: { kcal: 380, p: 9.5, f: 12.7, c: 57.0 }, category: "Pekovski izdelki" },
+  { name: "Vaflji sladoledarna (s sladoledom in smetano)", unit: "g", defaultQty: 200, rate: { kcal: 420, p: 10.5, f: 14.0, c: 63.0 }, category: "Pekovski izdelki" },
+  { name: "Milkshake vanilija (sladoledarna)", unit: "g", defaultQty: 300, rate: { kcal: 320, p: 8.0, f: 10.7, c: 48.0 }, category: "Pekovski izdelki" },
+  { name: "Grški jogurt z medom in orehi (sladica)", unit: "g", defaultQty: 200, rate: { kcal: 260, p: 6.5, f: 8.7, c: 39.0 }, category: "Pekovski izdelki" },
+  { name: "Palačinke Suzette (2 kosa)", unit: "g", defaultQty: 180, rate: { kcal: 320, p: 8.0, f: 10.7, c: 48.0 }, category: "Pekovski izdelki" },
+  { name: "Skutni štrudelj (kavarna)", unit: "g", defaultQty: 120, rate: { kcal: 270, p: 5.4, f: 10.5, c: 38.5 }, category: "Pekovski izdelki" },
+  { name: "Makova potičnica (mini)", unit: "g", defaultQty: 50, rate: { kcal: 370, p: 9.2, f: 12.3, c: 55.5 }, category: "Pekovski izdelki" },
+  { name: "Orehova potičnica (mini)", unit: "g", defaultQty: 50, rate: { kcal: 390, p: 9.8, f: 13.0, c: 58.5 }, category: "Pekovski izdelki" },
+  { name: "Rogljiček s skuto in rozinami", unit: "g", defaultQty: 80, rate: { kcal: 310, p: 6.2, f: 15.5, c: 36.4 }, category: "Pekovski izdelki" },
+  { name: "Ovseni piškoti domači (2 kosa)", unit: "g", defaultQty: 40, rate: { kcal: 460, p: 11.5, f: 15.3, c: 69.0 }, category: "Pekovski izdelki" },
+  { name: "Karamelni flan (kos)", unit: "g", defaultQty: 100, rate: { kcal: 200, p: 5.0, f: 6.7, c: 30.0 }, category: "Pekovski izdelki" },
 ];
 
 const SNACK_CATEGORIES = [
@@ -775,6 +1183,7 @@ const SNACK_CATEGORIES = [
   "Žita in musli",
   "Sladoled in zamrznjeni prigrizki",
   "Slovenski specialiteti",
+  "McDonald's",
   "Drugo",
   "Pijače",
 ];
@@ -928,7 +1337,7 @@ function usePersistentState(key, defaultValue) {
         try {
           window.localStorage.setItem(key, JSON.stringify(resolved));
         } catch {
-          // localStorage ni na voljo (npr. zasebno brskanje) — ostane samo v seji
+          // localStorage ni na voljo — ostane samo v seji
         }
         return resolved;
       });
@@ -1354,13 +1763,13 @@ function useDayPlan(targetKcal, selectedDay) {
       skipNextSave.current = false;
       return;
     }
+    const payload = JSON.stringify({ zajtrkCode, kosiloCode, vecerjaCode, snacks, adjustSlot });
     try {
-      const payload = JSON.stringify({ zajtrkCode, kosiloCode, vecerjaCode, snacks, adjustSlot });
       window.localStorage.setItem(`makrokuharica_dayplan_${selectedDay}`, payload);
     } catch {
       // localStorage ni na voljo — jedilnik ostane samo v seji
     }
-  }, [zajtrkCode, kosiloCode, vecerjaCode, snacks, adjustSlot, selectedDay]);
+  }, [zajtrkCode, kosiloCode, vecerjaCode, snacks, adjustSlot, selectedDay, loadedDay]);
 
   const zajtrk = ZV.find((r) => r.code === zajtrkCode);
   const kosilo = K.find((r) => r.code === kosiloCode);
@@ -2258,9 +2667,10 @@ function ShoppingListScreen({ plan }) {
   );
 }
 
-const TABS = [
+const TABS_BASE = [
   { key: "recepti", label: "Recepti", icon: BookOpen },
   { key: "dan", label: "Dnevni jedilnik", icon: CalendarDays },
+  { key: "dnevnik", label: "Dnevnik", icon: NotebookPen },
   { key: "nakup", label: "Nakup", icon: ShoppingCart },
   { key: "priljubljeni", label: "Priljubljeni", icon: Heart },
 ];
@@ -2272,8 +2682,51 @@ export default function MakroKuharica() {
   const [selectedDay, setSelectedDay] = useState(WEEK_DAYS[JS_DAY_TO_INDEX[new Date().getDay()]].key);
   const dayPlan = useDayPlan(wb.weeklyTargets[selectedDay], selectedDay);
 
+  const [userId, setUserId] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) setUserId(data?.user?.id || null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setUserId(session?.user?.id || null));
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const { profile, loading: profileLoading, saveProfile } = useProfile(userId);
+  const { log: dailyLog, saveLog: saveDailyLog } = useDailyLog(userId);
+
+  // Sinhroniziraj trenutni jedilnik v oblak (da ga admin vidi v nadzorni plošči)
+  useEffect(() => {
+    if (!userId) return;
+    const malice = dayPlan.snackEntries?.map((e) => ({ name: e.item.name, qty: e.qty })) || [];
+    const payload = {
+      user_id: userId,
+      plan_date: todayStr(),
+      zajtrk_koda: dayPlan.zajtrkCode || null,
+      kosilo_koda: dayPlan.kosiloCode || null,
+      vecerja_koda: dayPlan.vecerjaCode || null,
+      malice,
+      updated_at: new Date().toISOString(),
+    };
+    if (!payload.zajtrk_koda && !payload.kosilo_koda && !payload.vecerja_koda && malice.length === 0) return;
+    supabase.from("day_plans").upsert(payload, { onConflict: "user_id,plan_date" }).then(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, dayPlan.zajtrkCode, dayPlan.kosiloCode, dayPlan.vecerjaCode, dayPlan.snackEntries]);
+
+  const TABS = profile?.is_admin ? [...TABS_BASE, { key: "admin", label: "Nadzorna plošča", icon: LayoutDashboard }] : TABS_BASE;
+
   function toggleFavorite(code) {
     setFavorites((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
+  }
+
+  if (userId && profileLoading) {
+    return <div style={{ minHeight: "100vh", background: COLOR.paper }} />;
+  }
+  if (userId && !isProfileComplete(profile)) {
+    return <ProfileOnboarding onSave={saveProfile} saving={profileLoading} />;
   }
 
   return (
@@ -2294,10 +2747,12 @@ export default function MakroKuharica() {
         <div className="px-4">
           {tab === "recepti" && <RecipesScreen favorites={favorites} onToggleFavorite={toggleFavorite} onlyFavorites={false} />}
           {tab === "dan" && <DayPlannerScreen plan={dayPlan} wb={wb} selectedDay={selectedDay} setSelectedDay={setSelectedDay} />}
+          {tab === "dnevnik" && <DailyCheckIn log={dailyLog} onSave={saveDailyLog} />}
           {tab === "nakup" && <ShoppingListScreen plan={dayPlan} />}
           {tab === "priljubljeni" && (
             <RecipesScreen favorites={favorites} onToggleFavorite={toggleFavorite} onlyFavorites={true} />
           )}
+          {tab === "admin" && profile?.is_admin && <AdminDashboard />}
         </div>
       </div>
 
@@ -2305,7 +2760,7 @@ export default function MakroKuharica() {
         className="fixed bottom-0 left-0 right-0 flex justify-center"
         style={{ borderTop: `1px solid ${COLOR.line}`, background: "rgba(246,242,233,0.96)", backdropFilter: "blur(6px)" }}
       >
-        <div className="w-full max-w-lg grid grid-cols-4">
+        <div className="w-full max-w-lg grid" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>
           {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.key;

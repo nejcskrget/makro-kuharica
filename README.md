@@ -12,7 +12,7 @@ uporabnik ima svoj račun (e-pošta + geslo), ti pa vsakemu ročno ustvariš
 dostop. Ko se nekdo prijavi na **novi napravi**, se prejšnja naprava z istim
 računom **samodejno odjavi** — to preverja aplikacija vsakih 20 sekund.
 
-### Nastavitev (enkraten korak, ~10 minut) 
+### Nastavitev (enkraten korak, ~10 minut)
 
 1. Pojdi na **https://supabase.com** → "Start your project" → brezplačna
    registracija → "New project" (izberi ime, geslo za bazo, regijo — npr.
@@ -56,7 +56,29 @@ vedno v projektu, a se trenutno ne uporabljata (`main.jsx` zdaj uporablja
 `AuthGate`). Če bi želel oba sloja zaščite hkrati (dnevna koda + prijava),
 ju lahko v `main.jsx` gnezdiš enega v drugega.
 
-## Zagon lokalno
+## Profili strank, dnevno spremljanje in nadzorna plošča (novo)
+
+Poleg osnovne sheme (`supabase-schema.sql`) zdaj poženeš tudi **`supabase-schema-tracking.sql`**
+(SQL Editor → nova poizvedba → prilepi vso vsebino → Run). Ta doda:
+
+- **Profile strank** — ob prvi prijavi vsaka stranka izpolni ime, priimek, starost, višino,
+  težo in ciljne kalorije.
+- **Dnevno spremljanje** — na zavihku "Dnevni jedilnik" lahko stranka vsak dan vnese
+  jutranjo težo, ure spanca, korake in počutje/energijo ob koncu dneva.
+- **Nadzorna plošča** — nov zavihek, ki ga vidiš **samo ti** (lastnik), s seznamom vseh
+  strank, njihovimi podatki, zadnjimi dnevnimi vnosi in zadnjim izbranim jedilnikom.
+
+### Kako se narediš admina (lastnika)
+
+1. Prijavi se v aplikacijo s svojim računom **vsaj enkrat** (da nastane vrstica v `profiles`).
+2. V Supabase SQL Editorju poženi (zamenjaj e-pošto s svojo):
+   ```sql
+   update public.profiles set is_admin = true
+     where user_id = (select id from auth.users where email = 'tvoja@posta.si');
+   ```
+3. Osveži stran — zdaj vidiš dodaten zavihek "Nadzorna plošča".
+
+
 
 ```bash
 npm install
