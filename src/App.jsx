@@ -1202,6 +1202,19 @@ const WEEK_DAYS = [
 // JS Date.getDay(): 0=nedelja,1=pon,...6=sobota -> preslikava na WEEK_DAYS indeks
 const JS_DAY_TO_INDEX = [6, 0, 1, 2, 3, 4, 5];
 
+/** Za dani dan v tednu (npr. "sre") vrne pravi koledarski datum (YYYY-MM-DD) v TRENUTNEM tednu (ponedeljek-nedelja). */
+function dateForWeekday(weekdayKey) {
+  const idx = WEEK_DAYS.findIndex((d) => d.key === weekdayKey);
+  if (idx === -1) return todayStr();
+  const now = new Date();
+  const todayIdx = JS_DAY_TO_INDEX[now.getDay()]; // 0=pon...6=ned
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - todayIdx);
+  const target = new Date(monday);
+  target.setDate(monday.getDate() + idx);
+  return target.toISOString().slice(0, 10);
+}
+
 /** Hitre ocene za "poseben dan" zunaj doma — skupaj za CEL DAN (ne samo obrok). */
 const EATING_OUT_PRESETS = [
   { label: "Pica (restavracija)", kcal: 2500 },
@@ -2704,7 +2717,7 @@ export default function MakroKuharica() {
     const malice = dayPlan.snackEntries?.map((e) => ({ name: e.item.name, qty: e.qty })) || [];
     const payload = {
       user_id: userId,
-      plan_date: todayStr(),
+      plan_date: dateForWeekday(selectedDay),
       zajtrk_koda: dayPlan.zajtrkCode || null,
       kosilo_koda: dayPlan.kosiloCode || null,
       vecerja_koda: dayPlan.vecerjaCode || null,
@@ -2714,7 +2727,7 @@ export default function MakroKuharica() {
     if (!payload.zajtrk_koda && !payload.kosilo_koda && !payload.vecerja_koda && malice.length === 0) return;
     supabase.from("day_plans").upsert(payload, { onConflict: "user_id,plan_date" }).then(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, dayPlan.zajtrkCode, dayPlan.kosiloCode, dayPlan.vecerjaCode, dayPlan.snackEntries]);
+  }, [userId, selectedDay, dayPlan.zajtrkCode, dayPlan.kosiloCode, dayPlan.vecerjaCode, dayPlan.snackEntries]);
 
   const TABS = profile?.is_admin ? [...TABS_BASE, { key: "admin", label: "Nadzorna plošča", icon: LayoutDashboard }] : TABS_BASE;
 
