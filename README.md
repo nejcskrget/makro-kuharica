@@ -70,7 +70,10 @@ Poleg osnovne sheme (`supabase-schema.sql`) zdaj poženeš tudi **`supabase-sche
 
 Za administratorsko ustvarjanje receptov in dodeljevanje tedenskih jedilnikov nato
 poženi še **`supabase-schema-admin.sql`**. Ta doda tabelo receptov in varne RLS
-politike, ki samo administratorju dovolijo urejanje vsebine in jedilnikov.
+politike, ki samo administratorju dovolijo urejanje vsebine in jedilnikov. Takoj
+zatem poženi še **`supabase-seed-catalog.sql`**. Ta idempotentno doda vseh 23
+začetnih receptov med admin recepte ter 573 živil za malice in dodatke. Aplikacija
+oba kataloga nato nalaga neposredno iz Supabase; lokalnega vgrajenega kataloga ni več.
 
 ### Kako se narediš admina (lastnika)
 

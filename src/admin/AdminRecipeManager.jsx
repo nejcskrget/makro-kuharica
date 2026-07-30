@@ -11,7 +11,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { deleteAdminRecipe, fetchAdminRecipes, saveAdminRecipe } from "./adminData";
-import { BUILT_IN_CODES } from "./builtInRecipeCatalog";
 import { DeleteRecipeDialog } from "./DeleteRecipeDialog";
 
 const EMPTY_INGREDIENT = {
@@ -181,7 +180,7 @@ export function AdminRecipeManager() {
       <div className="admin-recipe-layout">
         <aside className="admin-recipe-library">
           <div className="admin-library-heading">
-            <div><BookOpen size={17} /><strong>Moji recepti</strong></div>
+            <div><BookOpen size={17} /><strong>Vsi recepti</strong></div>
             <span>{recipes.length}</span>
           </div>
           {loading ? <div className="admin-mini-loader" /> : recipes.length ? recipes.map((recipe) => (
@@ -191,7 +190,10 @@ export function AdminRecipeManager() {
               onClick={() => editRecipe(recipe)}
             >
               <span className="admin-library-item__icon"><FilePenLine size={15} /></span>
-              <span><strong>{recipe.title}</strong><small>{recipe.code} · {recipe.meal_type === "kosilo" ? "Kosilo" : "Zajtrk / večerja"}</small></span>
+              <span className="admin-library-item__copy">
+                <strong title={recipe.title}>{recipe.title}</strong>
+                <small>{recipe.code} · {recipe.meal_type === "kosilo" ? "Kosilo" : "Zajtrk / večerja"}</small>
+              </span>
               <i className={recipe.status === "published" ? "is-published" : ""}>{recipe.status === "published" ? "Objavljeno" : "Osnutek"}</i>
               <ChevronRight size={14} />
             </button>
@@ -293,6 +295,7 @@ function normalizeIngredient(ingredient) {
     },
     core: Boolean(ingredient.core),
     priloga: Boolean(ingredient.priloga),
+    ...(ingredient.brand ? { brand: ingredient.brand } : {}),
   };
 }
 
@@ -314,7 +317,6 @@ function calculateMacros(ingredients, portions) {
 function validateRecipe(recipe, existingRecipes) {
   if (!recipe.title.trim()) return "Vnesi ime recepta.";
   if (!recipe.code.trim()) return "Vnesi unikatno kodo recepta.";
-  if (BUILT_IN_CODES.has(recipe.code.trim().toUpperCase())) return "Ta koda pripada že vgrajenemu receptu. Uporabi npr. R-01.";
   if (existingRecipes.some((existing) => existing.code === recipe.code.trim().toUpperCase() && existing.id !== recipe.id)) return "Recept s to kodo že obstaja.";
   if (!recipe.ingredients.length || recipe.ingredients.some((ingredient) => !ingredient.name.trim() || !Number(ingredient.qty))) return "Vsaka sestavina potrebuje ime in količino.";
   if (!recipe.steps.trim()) return "Dodaj postopek priprave.";

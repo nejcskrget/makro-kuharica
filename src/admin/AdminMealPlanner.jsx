@@ -9,7 +9,6 @@ import {
   UserRound,
 } from "lucide-react";
 import { fetchAdminRecipes, fetchWeekPlan, hasPlanContent, saveWeekPlan } from "./adminData";
-import { BUILT_IN_RECIPES } from "./builtInRecipeCatalog";
 import { clientName, currentWeekDates } from "./adminUtils";
 
 const SLOTS = [
@@ -21,7 +20,7 @@ const SLOTS = [
 export function AdminMealPlanner({ clients }) {
   const [selectedClientId, setSelectedClientId] = useState(clients[0]?.user_id || "");
   const [weekOffset, setWeekOffset] = useState(0);
-  const [recipes, setRecipes] = useState(BUILT_IN_RECIPES);
+  const [recipes, setRecipes] = useState([]);
   const [plan, setPlan] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,12 +31,9 @@ export function AdminMealPlanner({ clients }) {
   useEffect(() => {
     let cancelled = false;
     fetchAdminRecipes()
-      .then((customRecipes) => {
+      .then((loadedRecipes) => {
         if (!cancelled) {
-          setRecipes([
-            ...BUILT_IN_RECIPES,
-            ...customRecipes.filter((recipe) => recipe.status === "published").map((recipe) => ({ ...recipe, source: "custom" })),
-          ]);
+          setRecipes(loadedRecipes.filter((recipe) => recipe.status === "published"));
         }
       })
       .catch(() => {});
@@ -157,7 +153,7 @@ export function AdminMealPlanner({ clients }) {
                     <select value={dayPlan[slot.key] || ""} onChange={(event) => updateDay(day.date, slot.key, event.target.value)}>
                       <option value="">— Dodaj —</option>
                       {recipes.filter((recipe) => recipe.meal_type === slot.type).map((recipe) => (
-                        <option key={`${recipe.source}-${recipe.code}`} value={recipe.code}>{recipe.code} · {recipe.title}</option>
+                        <option key={recipe.id || recipe.code} value={recipe.code}>{recipe.code} · {recipe.title}</option>
                       ))}
                     </select>
                   </label>
