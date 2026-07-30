@@ -177,3 +177,5 @@ src/
 public/                   - ikone, manifest (namestitev na domači zaslon)
 dist/                      - zgrajena različica (nastane z `bun run build`)
 ```
+
+test
