@@ -10,8 +10,9 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
-import { fetchAdminRecipes, saveAdminRecipe } from "./adminData";
+import { deleteAdminRecipe, fetchAdminRecipes, saveAdminRecipe } from "./adminData";
 import { BUILT_IN_CODES } from "./builtInRecipeCatalog";
+import { DeleteRecipeDialog } from "./DeleteRecipeDialog";
 
 const EMPTY_INGREDIENT = {
   name: "",
@@ -41,6 +42,8 @@ export function AdminRecipeManager() {
   const [form, setForm] = useState(EMPTY_RECIPE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [recipeToDelete, setRecipeToDelete] = useState(null);
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
@@ -146,6 +149,24 @@ export function AdminRecipeManager() {
     }
   }
 
+  async function handleDelete() {
+    if (!recipeToDelete?.id) return;
+    setDeleting(true);
+    setMessage(null);
+    try {
+      await deleteAdminRecipe(recipeToDelete.id);
+      setRecipes((current) => current.filter((recipe) => recipe.id !== recipeToDelete.id));
+      setForm({ ...EMPTY_RECIPE, ingredients: [{ ...EMPTY_INGREDIENT, rate: { ...EMPTY_INGREDIENT.rate } }] });
+      setRecipeToDelete(null);
+      setMessage({ type: "success", text: `Recept »${recipeToDelete.title}« je izbrisan.` });
+    } catch (error) {
+      setRecipeToDelete(null);
+      setMessage({ type: "error", text: schemaErrorMessage(error) });
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="admin-workspace">
       <header className="admin-workspace__header">
@@ -227,11 +248,22 @@ export function AdminRecipeManager() {
 
           {message ? <div className={`admin-form-message is-${message.type}`}>{message.type === "success" ? <Check size={15} /> : null}{message.text}</div> : null}
           <div className="admin-editor-actions">
+            {form.id ? (
+              <button className="admin-danger-text-button" disabled={saving || deleting} onClick={() => setRecipeToDelete(form)}>
+                <Trash2 size={15} /> Izbriši recept
+              </button>
+            ) : null}
             <button className="admin-secondary-button" disabled={saving} onClick={() => handleSave("draft")}><Save size={15} /> Shrani osnutek</button>
             <button className="admin-primary-button" disabled={saving} onClick={() => handleSave("published")}><Check size={15} /> {saving ? "Shranjujem ..." : "Objavi recept"}</button>
           </div>
         </main>
       </div>
+      <DeleteRecipeDialog
+        recipe={recipeToDelete}
+        deleting={deleting}
+        onCancel={() => setRecipeToDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

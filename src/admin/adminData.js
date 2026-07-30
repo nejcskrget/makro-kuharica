@@ -31,6 +31,12 @@ export async function saveAdminRecipe(recipe) {
   return data;
 }
 
+export async function deleteAdminRecipe(recipeId) {
+  const { data, error } = await supabase.rpc("delete_admin_recipe", { target_id: recipeId });
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchWeekPlan(userId, firstDate, lastDate) {
   const { data, error } = await supabase
     .from("day_plans")

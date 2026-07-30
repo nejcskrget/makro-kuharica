@@ -1749,6 +1749,7 @@ function useDayPlan(targetKcal, selectedDay, recipes) {
   const [kosiloCode, setKosiloCode] = useState("");
   const [vecerjaCode, setVecerjaCode] = useState("");
   const [snacks, setSnacks] = useState([]); // [{ snackIdx, qty }]
+  const [mealExtras, setMealExtras] = useState({ zajtrk: [], kosilo: [], vecerja: [] });
   const [adjustSlot, setAdjustSlot] = useState("vecerja"); // "zajtrk" | "kosilo" | "vecerja"
   const loadedDayRef = useRef(null);
   const skipNextSave = useRef(false);
@@ -1765,12 +1766,14 @@ function useDayPlan(targetKcal, selectedDay, recipes) {
       setKosiloCode(saved?.kosiloCode || "");
       setVecerjaCode(saved?.vecerjaCode || "");
       setSnacks(saved?.snacks || []);
+      setMealExtras(saved?.mealExtras || { zajtrk: [], kosilo: [], vecerja: [] });
       setAdjustSlot(saved?.adjustSlot || "vecerja");
     } catch {
       setZajtrkCode("");
       setKosiloCode("");
       setVecerjaCode("");
       setSnacks([]);
+      setMealExtras({ zajtrk: [], kosilo: [], vecerja: [] });
       setAdjustSlot("vecerja");
     }
     loadedDayRef.current = selectedDay;
@@ -1783,13 +1786,13 @@ function useDayPlan(targetKcal, selectedDay, recipes) {
       skipNextSave.current = false;
       return;
     }
-    const payload = JSON.stringify({ zajtrkCode, kosiloCode, vecerjaCode, snacks, adjustSlot });
+    const payload = JSON.stringify({ zajtrkCode, kosiloCode, vecerjaCode, snacks, mealExtras, adjustSlot });
     try {
       window.localStorage.setItem(`makrokuharica_dayplan_${selectedDay}`, payload);
     } catch {
       // localStorage ni na voljo — jedilnik ostane samo v seji
     }
-  }, [zajtrkCode, kosiloCode, vecerjaCode, snacks, adjustSlot, selectedDay]);
+  }, [zajtrkCode, kosiloCode, vecerjaCode, snacks, mealExtras, adjustSlot, selectedDay]);
 
   const zajtrk = breakfastRecipes.find((recipe) => recipe.code === zajtrkCode);
   const kosilo = lunchRecipes.find((recipe) => recipe.code === kosiloCode);
@@ -1884,7 +1887,7 @@ function useDayPlan(targetKcal, selectedDay, recipes) {
   return {
     dayTarget,
     zajtrkCode, setZajtrkCode, kosiloCode, setKosiloCode, vecerjaCode, setVecerjaCode,
-    snacks, addSnack, updateSnack, removeSnack, snackEntries, snackM,
+    snacks, addSnack, updateSnack, removeSnack, snackEntries, snackM, mealExtras, setMealExtras,
     zajtrk, kosilo, vecerja, ingFor, zajtrkM, kosiloM, vecerjaM, dayTotal,
     microRows, showMicro, overBudget, adjustSlot, setAdjustSlot, slotLabels,
     recipeOptions: { breakfast: breakfastRecipes, lunch: lunchRecipes },
@@ -2164,15 +2167,26 @@ function SnackAutocomplete({ value, query, onQueryChange, onSelect }) {
   );
 }
 
+function MobileMealCard({ slot, label, icon, open, onToggle, code, setCode, options, mealExtras, setMealExtras }) {
+  const rows = mealExtras[slot] || [];
+  const add = () => setMealExtras((prev) => ({ ...prev, [slot]: [...(prev[slot] || []), { snackIdx: "", qty: "" }] }));
+  const update = (idx, field, value) => setMealExtras((prev) => ({ ...prev, [slot]: prev[slot].map((row, i) => i === idx ? { ...row, [field]: value } : row) }));
+  return <section className="rounded-md overflow-hidden" style={{ background: COLOR.card, border: `1px solid ${open ? COLOR.forest : COLOR.line}` }}>
+    <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-4 text-left"><span className="w-10 h-10 rounded-full flex items-center justify-center text-xl" style={{ background: open ? COLOR.sageSoft : COLOR.amberSoft }}>{icon}</span><span className="flex-1 text-[18px] uppercase" style={{ fontFamily: "Georgia, serif", color: COLOR.forest }}>{label}</span>{open ? <ChevronUp size={22} /> : <ChevronDown size={22} />}</button>
+    {open ? <div className="px-4 pb-4"><label className="text-[11px] block mb-1" style={{ color: COLOR.sage }}>Kateri obrok naj se prilagodi?</label><select value={code} onChange={(e) => setCode(e.target.value)} className="w-full text-[16px] px-3 py-2 rounded-md outline-none" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}><option value="">—</option>{options.map((recipe) => <option key={recipe.code} value={recipe.code}>{recipe.code} · {recipe.title}</option>)}</select><div className="mt-4"><label className="text-[11px] uppercase tracking-wide" style={{ color: COLOR.sage }}>Dodana živila</label>{rows.map((row, idx) => <div className="flex items-center gap-2 mt-2" key={idx}><select value={row.snackIdx} onChange={(e) => update(idx, "snackIdx", e.target.value)} className="min-w-0 flex-1 text-[15px] px-2 py-2 rounded-md" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}><option value="">Izberi živilo</option>{SNACKS.map((food, foodIdx) => <option key={food.name} value={foodIdx}>{food.name}</option>)}</select><input type="number" value={row.qty} placeholder="150" onChange={(e) => update(idx, "qty", e.target.value)} className="w-20 text-[15px] px-2 py-2 rounded-md" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.card }} /><span style={{ color: COLOR.sage }}>g</span><button onClick={() => setMealExtras((prev) => ({ ...prev, [slot]: prev[slot].filter((_, i) => i !== idx) }))} style={{ color: COLOR.danger }}><X size={20} /></button></div>)}<button onClick={add} className="mt-3 w-full py-3 rounded-md text-[16px]" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, color: COLOR.ink }}><Plus size={16} className="inline mr-2" />Dodaj še živilo</button></div></div> : <button onClick={onToggle} className="mx-4 mb-4 w-[calc(100%-2rem)] py-3 rounded-md text-[16px]" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper }}><Plus size={16} className="inline mr-2" />Dodaj še živilo</button>}
+  </section>;
+}
+
 function DayPlannerScreen({ plan, wb, selectedDay, setSelectedDay }) {
   const {
     dayTarget,
     zajtrkCode, setZajtrkCode, kosiloCode, setKosiloCode, vecerjaCode, setVecerjaCode,
-    snacks, addSnack, updateSnack, removeSnack, snackEntries, snackM,
+    snacks, addSnack, updateSnack, removeSnack, snackEntries, snackM, mealExtras, setMealExtras,
     zajtrk, kosilo, vecerja, ingFor, zajtrkM, kosiloM, vecerjaM, dayTotal,
     microRows, showMicro, overBudget, adjustSlot, setAdjustSlot, slotLabels,
     recipeOptions,
   } = plan;
+  const [openMeal, setOpenMeal] = useState("vecerja");
 
   return (
     <div>
@@ -2186,7 +2200,12 @@ function DayPlannerScreen({ plan, wb, selectedDay, setSelectedDay }) {
         tortilja) pri prilagajanju ostanejo nespremenjene — spreminjajo se le priloge in ostale sestavine.
       </p>
 
-      <div className="rounded-sm overflow-hidden" style={{ background: COLOR.card, border: `1px solid ${COLOR.line}` }}>
+      <div className="space-y-3 mb-5">
+        <MobileMealCard slot="zajtrk" label="Zajtrk" icon="☀️" open={openMeal === "zajtrk"} onToggle={() => setOpenMeal(openMeal === "zajtrk" ? "" : "zajtrk")} code={zajtrkCode} setCode={setZajtrkCode} options={recipeOptions.breakfast} mealExtras={mealExtras} setMealExtras={setMealExtras} />
+        <MobileMealCard slot="kosilo" label="Kosilo" icon="☀️" open={openMeal === "kosilo"} onToggle={() => setOpenMeal(openMeal === "kosilo" ? "" : "kosilo")} code={kosiloCode} setCode={setKosiloCode} options={recipeOptions.lunch} mealExtras={mealExtras} setMealExtras={setMealExtras} />
+        <MobileMealCard slot="vecerja" label="Večerja" icon="🌙" open={openMeal === "vecerja"} onToggle={() => setOpenMeal(openMeal === "vecerja" ? "" : "vecerja")} code={vecerjaCode} setCode={setVecerjaCode} options={recipeOptions.breakfast} mealExtras={mealExtras} setMealExtras={setMealExtras} />
+      </div>
+      <div className="rounded-sm overflow-hidden hidden" style={{ background: COLOR.card, border: `1px solid ${COLOR.line}` }}>
         <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ borderBottom: `1px solid ${COLOR.line}` }}>
           <div>
             <label className="text-[10px] uppercase tracking-wide block mb-1" style={{ color: COLOR.sage }}>

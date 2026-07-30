@@ -41,7 +41,9 @@
 
 .admin-primary-button,
 .admin-secondary-button,
-.admin-text-button {
+.admin-text-button,
+.admin-danger-button,
+.admin-danger-text-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -90,6 +92,43 @@
   background: #fff;
   font-size: 10px;
   font-weight: 700;
+}
+
+.admin-danger-button {
+  min-height: 37px;
+  padding: 0 15px;
+  color: #fff;
+  border: 1px solid #9f4438;
+  border-radius: 6px;
+  background: #a94c3e;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-danger-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(139, 51, 40, 0.2);
+}
+
+.admin-danger-button:disabled,
+.admin-danger-text-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-danger-text-button {
+  min-height: 37px;
+  margin-right: auto;
+  padding: 0 8px;
+  color: #a14a3c;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-danger-text-button:hover {
+  color: #7f3025;
+  background: #fff2ef;
 }
 
 .admin-text-button {
@@ -471,6 +510,103 @@
   padding-top: 18px;
 }
 
+.admin-dialog-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: rgba(10, 31, 24, 0.58);
+  backdrop-filter: blur(4px);
+  animation: admin-dialog-fade 160ms ease-out both;
+}
+
+.admin-delete-dialog {
+  position: relative;
+  width: min(430px, 100%);
+  padding: 28px;
+  text-align: center;
+  border: 1px solid #e0d5c5;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% -15%, rgba(201, 138, 44, 0.14), transparent 38%),
+    #fffdf8;
+  box-shadow: 0 24px 80px rgba(8, 31, 23, 0.28);
+  animation: admin-dialog-rise 200ms ease-out both;
+}
+
+.admin-dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: var(--admin-muted);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.admin-dialog-close:hover {
+  background: #f1ece3;
+}
+
+.admin-delete-dialog__icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 13px;
+  place-items: center;
+  color: #a94c3e;
+  border-radius: 50%;
+  background: #f9e7e2;
+}
+
+.admin-delete-dialog__eyebrow {
+  margin: 0;
+  color: #a94c3e;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.admin-delete-dialog h4 {
+  margin: 6px 0 0;
+  color: var(--admin-forest);
+  font-family: Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.admin-delete-dialog > p:last-of-type {
+  margin: 12px auto 0;
+  max-width: 340px;
+  color: var(--admin-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.admin-delete-dialog__actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+@keyframes admin-dialog-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes admin-dialog-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .admin-form-message {
   display: flex;
   align-items: center;
@@ -836,6 +972,20 @@
   }
 
   .admin-editor-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-danger-text-button {
+    margin-right: 0;
+    order: 3;
+  }
+
+  .admin-delete-dialog {
+    padding: 24px 18px 20px;
+  }
+
+  .admin-delete-dialog__actions {
     display: grid;
     grid-template-columns: 1fr;
   }
