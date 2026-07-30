@@ -111,7 +111,7 @@ export function AdminDashboard() {
       {view === "overview" ? (
         <>
           <section className="admin-stat-grid" aria-label="Ključni podatki">
-            <StatCard icon={Users} value={clients.length} label="Strank" note="Vseh aktivnih profilov" />
+            <StatCard icon={Users} value={clients.length} label="Strank" note="Vseh aktivnih profilov" onClick={() => setView("clients")} />
             <StatCard icon={UserRoundCheck} value={activeClients} label="Aktivnih ta teden" note={`${clients.length ? Math.round((activeClients / clients.length) * 100) : 0} % vseh strank`} positive />
             <StatCard icon={ClipboardCheck} value={`${adherence} %`} label="Upoštevanje jedilnikov" note={`${plannedDays} načrtovanih dni`} />
             <StatCard icon={Activity} value={needsAttention} label="Za pregled" note="Brez vnosa več kot 7 dni" warning={needsAttention > 0} />
@@ -187,12 +187,16 @@ export function AdminDashboard() {
   );
 }
 
-function StatCard({ icon: Icon, value, label, note, positive, warning }) {
+function StatCard({ icon: Icon, value, label, note, positive, warning, onClick }) {
+  const Card = onClick ? "button" : "article";
   return (
-    <div className={`admin-stat-card ${warning ? "is-warning" : ""}`}>
+    <Card
+      className={`admin-stat-card ${warning ? "is-warning" : ""} ${onClick ? "is-clickable" : ""}`}
+      {...(onClick ? { type: "button", onClick, "aria-label": `Odpri stranke: ${value} ${label}` } : {})}
+    >
       <span className="admin-stat-card__icon"><Icon size={20} /></span>
       <div><strong>{value}</strong><span>{label}</span><small className={positive ? "is-positive" : ""}>{note}</small></div>
-    </div>
+    </Card>
   );
 }
 

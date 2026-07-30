@@ -21,6 +21,10 @@ create table if not exists public.admin_recipes (
   updated_at timestamptz not null default now()
 );
 
+alter table public.admin_recipes
+  add column if not exists original_summary text,
+  add column if not exists micronutrients jsonb not null default '{}'::jsonb;
+
 alter table public.admin_recipes enable row level security;
 
 drop policy if exists "uporabniki berejo objavljene recepte" on public.admin_recipes;
@@ -113,3 +117,56 @@ $$;
 revoke all on function public.delete_admin_recipe(uuid) from public;
 revoke all on function public.delete_admin_recipe(uuid) from anon;
 grant execute on function public.delete_admin_recipe(uuid) to authenticated;
+
+-- Živila za malice in dodatke so ločena od receptov, ker imajo hranilne
+-- vrednosti na enoto in ne postopka priprave. Stabilni ključ ohranja že
+-- shranjene izbire veljavne tudi, ko se spremeni vrstni red kataloga.
+create table if not exists public.catalog_snacks (
+  key text primary key,
+  name text not null,
+  unit text not null check (unit in ('g', 'ml')),
+  default_qty numeric not null check (default_qty > 0),
+  kcal numeric not null default 0 check (kcal >= 0),
+  protein numeric not null default 0 check (protein >= 0),
+  fat numeric not null default 0 check (fat >= 0),
+  carbs numeric not null default 0 check (carbs >= 0),
+  category text not null default 'Ostalo',
+  sort_order int not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.catalog_snacks enable row level security;
+
+drop policy if exists "prijavljeni berejo katalog malic" on public.catalog_snacks;
+create policy "prijavljeni berejo katalog malic"
+  on public.catalog_snacks for select
+  to authenticated
+  using (is_active or public.is_admin());
+
+drop policy if exists "admin ustvarja živila za malice" on public.catalog_snacks;
+create policy "admin ustvarja živila za malice"
+  on public.catalog_snacks for insert
+  to authenticated
+  with check (public.is_admin());
+
+drop policy if exists "admin ureja živila za malice" on public.catalog_snacks;
+create policy "admin ureja živila za malice"
+  on public.catalog_snacks for update
+  to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "admin briše živila za malice" on public.catalog_snacks;
+create policy "admin briše živila za malice"
+  on public.catalog_snacks for delete
+  to authenticated
+  using (public.is_admin());
+
+create index if not exists catalog_snacks_active_order_idx
+  on public.catalog_snacks (sort_order)
+  where is_active;
+
+create index if not exists catalog_snacks_category_idx
+  on public.catalog_snacks (category);

@@ -147,6 +147,8 @@
 }
 
 .admin-recipe-library {
+  min-width: 0;
+  overflow: hidden;
   padding: 14px;
   border-right: 1px solid var(--admin-line);
   background: #f7f4ec;
@@ -184,8 +186,10 @@
 
 .admin-library-item {
   display: grid;
+  overflow: hidden;
   width: 100%;
-  grid-template-columns: 32px 1fr auto 14px;
+  min-width: 0;
+  grid-template-columns: 32px minmax(0, 1fr) max-content 14px;
   gap: 8px;
   align-items: center;
   margin-bottom: 6px;
@@ -218,16 +222,21 @@
   background: var(--admin-forest-soft);
 }
 
+.admin-library-item__copy {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .admin-library-item strong,
 .admin-library-item small {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-library-item strong {
-  overflow: hidden;
   font-size: 10px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .admin-library-item small {
@@ -901,6 +910,7 @@
 
   .admin-recipe-library {
     max-height: 220px;
+    overflow-x: hidden;
     overflow-y: auto;
     border-right: 0;
     border-bottom: 1px solid var(--admin-line);

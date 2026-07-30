@@ -159,16 +159,29 @@
 }
 
 .admin-stat-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 13px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  width: 100%;
   min-height: 112px;
   padding: 18px;
+  color: inherit;
+  text-align: left;
   border: 1px solid var(--admin-line);
   border-radius: 10px;
   background: var(--admin-card);
   box-shadow: 0 6px 18px rgba(32, 50, 39, 0.045);
   transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.admin-stat-card.is-clickable {
+  cursor: pointer;
+}
+
+.admin-stat-card.is-clickable:focus-visible {
+  outline: 3px solid rgba(201, 138, 44, 0.35);
+  outline-offset: 2px;
 }
 
 .admin-stat-card:hover {
@@ -178,8 +191,8 @@
 
 .admin-stat-card__icon {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   flex: 0 0 auto;
   place-items: center;
   color: var(--admin-forest);
@@ -192,14 +205,14 @@
   background: #f6e8d6;
 }
 
-.admin-stat-card strong,
-.admin-stat-card span,
-.admin-stat-card small {
+.admin-stat-card div > strong,
+.admin-stat-card div > span,
+.admin-stat-card div > small {
   display: block;
 }
 
 .admin-stat-card strong {
-  margin-top: -2px;
+  margin: 0;
   color: var(--admin-forest-deep);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 25px;
@@ -207,13 +220,13 @@
 }
 
 .admin-stat-card div > span {
-  margin-top: 1px;
+  margin-top: 2px;
   font-size: 11px;
   font-weight: 700;
 }
 
 .admin-stat-card small {
-  margin-top: 9px;
+  margin-top: 8px;
   color: var(--admin-muted);
   font-size: 9px;
 }
