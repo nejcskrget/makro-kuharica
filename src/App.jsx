@@ -23,7 +23,12 @@ import { useProfile, isProfileComplete } from "./useProfile";
 import { useDailyLog, todayStr } from "./useDailyLog";
 import { ProfileOnboarding } from "./ProfileOnboarding";
 import { DailyCheckIn } from "./DailyCheckIn";
-import { AdminDashboard } from "./AdminDashboard";
+import { fetchPublishedRecipes } from "./customRecipes";
+import { PushNotificationCard } from "./notifications/PushNotificationCard";
+
+const AdminDashboard = React.lazy(() =>
+  import("./admin/AdminDashboard").then((module) => ({ default: module.AdminDashboard }))
+);
 
 /* =============================================================================
    MAKRO KUHARICA — premium prehranska aplikacija (SL)
@@ -1568,13 +1573,13 @@ function RecipeListCard({ recipe, isFavorite, onToggleFavorite, isOpen, onToggle
 /* ---------------------------------------------------------------------------
    8) ZASLON: RECEPTI — iskanje, filtri po tipu, priljubljeni
    ------------------------------------------------------------------------- */
-function RecipesScreen({ favorites, onToggleFavorite, onlyFavorites }) {
+function RecipesScreen({ favorites, onToggleFavorite, onlyFavorites, recipes }) {
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("vsi"); // vsi | zajtrk-vecerja | kosilo
   const [openCode, setOpenCode] = useState(null);
 
   const filtered = useMemo(() => {
-    return ALL_RECIPES.filter((r) => {
+    return recipes.filter((r) => {
       if (onlyFavorites && !favorites.includes(r.code)) return false;
       if (typeFilter !== "vsi" && r.type !== typeFilter) return false;
       if (query.trim()) {
@@ -1583,7 +1588,7 @@ function RecipesScreen({ favorites, onToggleFavorite, onlyFavorites }) {
       }
       return true;
     });
-  }, [query, typeFilter, favorites, onlyFavorites]);
+  }, [query, typeFilter, favorites, onlyFavorites, recipes]);
 
   return (
     <div>
@@ -1601,7 +1606,7 @@ function RecipesScreen({ favorites, onToggleFavorite, onlyFavorites }) {
           </div>
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
             <Chip active={typeFilter === "vsi"} onClick={() => setTypeFilter("vsi")}>
-              Vsi ({ALL_RECIPES.length})
+              Vsi ({recipes.length})
             </Chip>
             <Chip active={typeFilter === "zajtrk-vecerja"} onClick={() => setTypeFilter("zajtrk-vecerja")}>
               Zajtrk / Večerja
@@ -1736,8 +1741,10 @@ function useWeeklyBudget() {
   };
 }
 
-function useDayPlan(targetKcal, selectedDay) {
+function useDayPlan(targetKcal, selectedDay, recipes) {
   const dayTarget = targetKcal || DAY_TARGET_KCAL;
+  const breakfastRecipes = useMemo(() => recipes.filter((recipe) => recipe.type === "zajtrk-vecerja"), [recipes]);
+  const lunchRecipes = useMemo(() => recipes.filter((recipe) => recipe.type === "kosilo"), [recipes]);
   const [zajtrkCode, setZajtrkCode] = useState("");
   const [kosiloCode, setKosiloCode] = useState("");
   const [vecerjaCode, setVecerjaCode] = useState("");
@@ -1784,9 +1791,9 @@ function useDayPlan(targetKcal, selectedDay) {
     }
   }, [zajtrkCode, kosiloCode, vecerjaCode, snacks, adjustSlot, selectedDay]);
 
-  const zajtrk = ZV.find((r) => r.code === zajtrkCode);
-  const kosilo = K.find((r) => r.code === kosiloCode);
-  const vecerja = ZV.find((r) => r.code === vecerjaCode);
+  const zajtrk = breakfastRecipes.find((recipe) => recipe.code === zajtrkCode);
+  const kosilo = lunchRecipes.find((recipe) => recipe.code === kosiloCode);
+  const vecerja = breakfastRecipes.find((recipe) => recipe.code === vecerjaCode);
 
   function addSnack() {
     setSnacks((prev) => [...prev, { snackIdx: "", qty: "", query: "", customName: "", customKcal: "", customP: "", customF: "", customC: "" }]);
@@ -1880,6 +1887,7 @@ function useDayPlan(targetKcal, selectedDay) {
     snacks, addSnack, updateSnack, removeSnack, snackEntries, snackM,
     zajtrk, kosilo, vecerja, ingFor, zajtrkM, kosiloM, vecerjaM, dayTotal,
     microRows, showMicro, overBudget, adjustSlot, setAdjustSlot, slotLabels,
+    recipeOptions: { breakfast: breakfastRecipes, lunch: lunchRecipes },
   };
 }
 
@@ -2163,6 +2171,7 @@ function DayPlannerScreen({ plan, wb, selectedDay, setSelectedDay }) {
     snacks, addSnack, updateSnack, removeSnack, snackEntries, snackM,
     zajtrk, kosilo, vecerja, ingFor, zajtrkM, kosiloM, vecerjaM, dayTotal,
     microRows, showMicro, overBudget, adjustSlot, setAdjustSlot, slotLabels,
+    recipeOptions,
   } = plan;
 
   return (
@@ -2190,7 +2199,7 @@ function DayPlannerScreen({ plan, wb, selectedDay, setSelectedDay }) {
               style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}
             >
               <option value="">—</option>
-              {ZV.map((r) => (
+              {recipeOptions.breakfast.map((r) => (
                 <option key={r.code} value={r.code}>
                   {r.code} · {r.title}
                 </option>
@@ -2208,7 +2217,7 @@ function DayPlannerScreen({ plan, wb, selectedDay, setSelectedDay }) {
               style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}
             >
               <option value="">—</option>
-              {K.map((r) => (
+              {recipeOptions.lunch.map((r) => (
                 <option key={r.code} value={r.code}>
                   {r.code} · {r.title}
                 </option>
@@ -2226,7 +2235,7 @@ function DayPlannerScreen({ plan, wb, selectedDay, setSelectedDay }) {
               style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}
             >
               <option value="">—</option>
-              {ZV.map((r) => (
+              {recipeOptions.breakfast.map((r) => (
                 <option key={r.code} value={r.code}>
                   {r.code} · {r.title}
                 </option>
@@ -2691,11 +2700,17 @@ const TABS_BASE = [
 export default function MakroKuharica() {
   const [tab, setTab] = useState("recepti");
   const [favorites, setFavorites, favLoaded] = usePersistentState("makrokuharica_favorites", []);
+  const [customRecipes, setCustomRecipes] = useState([]);
+  const recipes = useMemo(() => {
+    const customCodes = new Set(customRecipes.map((recipe) => recipe.code));
+    return [...ALL_RECIPES.filter((recipe) => !customCodes.has(recipe.code)), ...customRecipes];
+  }, [customRecipes]);
   const wb = useWeeklyBudget();
   const [selectedDay, setSelectedDay] = useState(WEEK_DAYS[JS_DAY_TO_INDEX[new Date().getDay()]].key);
-  const dayPlan = useDayPlan(wb.weeklyTargets[selectedDay], selectedDay);
+  const dayPlan = useDayPlan(wb.weeklyTargets[selectedDay], selectedDay, recipes);
 
   const [userId, setUserId] = useState(null);
+  const [cloudPlanKey, setCloudPlanKey] = useState("");
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getUser().then(({ data }) => {
@@ -2708,16 +2723,59 @@ export default function MakroKuharica() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    fetchPublishedRecipes()
+      .then((loadedRecipes) => {
+        if (!cancelled) setCustomRecipes(loadedRecipes);
+      })
+      .catch(() => {
+        // Admin shema morda še ni nameščena; vgrajeni recepti ostanejo na voljo.
+      });
+    return () => { cancelled = true; };
+  }, [userId]);
+
   const { profile, loading: profileLoading, saveProfile } = useProfile(userId);
   const { log: dailyLog, saveLog: saveDailyLog } = useDailyLog(userId);
+
+  // Admin lahko stranki dodeli jedilnik. Ob menjavi dneva ima oblačni načrt
+  // prednost pred lokalno shranjeno izbiro.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    const planDate = dateForWeekday(selectedDay);
+    const key = `${userId}:${planDate}`;
+    setCloudPlanKey("");
+    supabase
+      .from("day_plans")
+      .select("zajtrk_koda,kosilo_koda,vecerja_koda")
+      .eq("user_id", userId)
+      .eq("plan_date", planDate)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data) {
+          dayPlan.setZajtrkCode(data.zajtrk_koda || "");
+          dayPlan.setKosiloCode(data.kosilo_koda || "");
+          dayPlan.setVecerjaCode(data.vecerja_koda || "");
+        }
+        setCloudPlanKey(key);
+      });
+    return () => { cancelled = true; };
+    // Setterji so stabilni po namenu; ponovno nalagamo samo ob menjavi uporabnika ali dneva.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, selectedDay]);
 
   // Sinhroniziraj trenutni jedilnik v oblak (da ga admin vidi v nadzorni plošči)
   useEffect(() => {
     if (!userId) return;
+    const planDate = dateForWeekday(selectedDay);
+    if (cloudPlanKey !== `${userId}:${planDate}`) return;
     const malice = dayPlan.snackEntries?.map((e) => ({ name: e.item.name, qty: e.qty })) || [];
     const payload = {
       user_id: userId,
-      plan_date: dateForWeekday(selectedDay),
+      plan_date: planDate,
       zajtrk_koda: dayPlan.zajtrkCode || null,
       kosilo_koda: dayPlan.kosiloCode || null,
       vecerja_koda: dayPlan.vecerjaCode || null,
@@ -2727,7 +2785,7 @@ export default function MakroKuharica() {
     if (!payload.zajtrk_koda && !payload.kosilo_koda && !payload.vecerja_koda && malice.length === 0) return;
     supabase.from("day_plans").upsert(payload, { onConflict: "user_id,plan_date" }).then(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, selectedDay, dayPlan.zajtrkCode, dayPlan.kosiloCode, dayPlan.vecerjaCode, dayPlan.snackEntries]);
+  }, [userId, selectedDay, cloudPlanKey, dayPlan.zajtrkCode, dayPlan.kosiloCode, dayPlan.vecerjaCode, dayPlan.snackEntries]);
 
   const TABS = profile?.is_admin ? [...TABS_BASE, { key: "admin", label: "Nadzorna plošča", icon: LayoutDashboard }] : TABS_BASE;
 
@@ -2744,8 +2802,8 @@ export default function MakroKuharica() {
 
   return (
     <div style={{ background: COLOR.paper, minHeight: "100%" }} className="w-full flex justify-center">
-      <div className="w-full max-w-lg pb-24">
-        <div className="text-center px-4 pt-8 pb-6">
+      <div className={`w-full pb-24 ${tab === "admin" ? "max-w-[1440px]" : "max-w-lg"}`}>
+        <div className={`text-center px-4 pt-8 pb-6 ${tab === "admin" ? "hidden" : ""}`}>
           <div className="flex items-center justify-center gap-2 mb-2" style={{ color: COLOR.amber }}>
             <ChefHat size={22} strokeWidth={1.75} />
           </div>
@@ -2753,19 +2811,28 @@ export default function MakroKuharica() {
             Makro kuharica
           </h1>
           <p className="text-[13px] mt-2" style={{ color: COLOR.sage }}>
-            {ALL_RECIPES.length} receptov · Zajtrk/Večerja ≈ 450–500 kcal, 30–35 g B · Kosilo ≈ 600–650 kcal, ≈ 40 g B
+            {recipes.length} receptov · Zajtrk/Večerja ≈ 450–500 kcal, 30–35 g B · Kosilo ≈ 600–650 kcal, ≈ 40 g B
           </p>
         </div>
 
-        <div className="px-4">
-          {tab === "recepti" && <RecipesScreen favorites={favorites} onToggleFavorite={toggleFavorite} onlyFavorites={false} />}
+        <div className={tab === "admin" ? "px-3 py-4 md:px-6 md:py-6" : "px-4"}>
+          {tab === "recepti" && <RecipesScreen favorites={favorites} onToggleFavorite={toggleFavorite} onlyFavorites={false} recipes={recipes} />}
           {tab === "dan" && <DayPlannerScreen plan={dayPlan} wb={wb} selectedDay={selectedDay} setSelectedDay={setSelectedDay} />}
-          {tab === "dnevnik" && <DailyCheckIn log={dailyLog} onSave={saveDailyLog} />}
+          {tab === "dnevnik" && (
+            <>
+              <PushNotificationCard userId={userId} />
+              <DailyCheckIn log={dailyLog} onSave={saveDailyLog} />
+            </>
+          )}
           {tab === "nakup" && <ShoppingListScreen plan={dayPlan} />}
           {tab === "priljubljeni" && (
-            <RecipesScreen favorites={favorites} onToggleFavorite={toggleFavorite} onlyFavorites={true} />
+            <RecipesScreen favorites={favorites} onToggleFavorite={toggleFavorite} onlyFavorites={true} recipes={recipes} />
           )}
-          {tab === "admin" && profile?.is_admin && <AdminDashboard />}
+          {tab === "admin" && profile?.is_admin && (
+            <React.Suspense fallback={<div style={{ minHeight: 320 }} />}>
+              <AdminDashboard />
+            </React.Suspense>
+          )}
         </div>
       </div>
 
