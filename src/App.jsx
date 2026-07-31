@@ -28,6 +28,12 @@ import { ProfileOnboarding } from "./ProfileOnboarding";
 import { DailyCheckIn } from "./DailyCheckIn";
 import { fetchCatalogSnacks, fetchPublishedRecipes } from "./catalogData";
 import { PushNotificationCard } from "./notifications/PushNotificationCard";
+import { SnackPickerField } from "./SnackPickerField";
+import {
+  DayMacroSummary,
+  MealAdjustmentControl,
+  SnackSection,
+} from "./day-planner/DayPlannerControls";
 
 const AdminDashboard = React.lazy(() =>
   import("./admin/AdminDashboard").then((module) => ({ default: module.AdminDashboard }))
@@ -1030,93 +1036,109 @@ function findSnack(snackCatalog, value) {
   return snackCatalog.find((snack) => snack.key === value) || snackCatalog[Number(value)] || null;
 }
 
-function SnackAutocomplete({ snackCatalog, value, query, onQueryChange, onSelect }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-  const selected = findSnack(snackCatalog, value);
-  const displayValue = value === "custom" ? "✏️ Dodaj svoje živilo (ročno)" : selected ? selected.name : query;
-
-  const q = normalizeSl(query.trim());
-  const pool = q.length > 0 ? snackCatalog.filter((snack) => normalizeSl(snack.name).includes(q)) : snackCatalog;
-  const matches = pool.slice(0, 15);
-
-  function handleFocus() {
-    setOpen(true);
-    // Na telefonu tipkovnica prekrije spodnji del zaslona — počakamo, da se
-    // tipkovnica prikaže, nato polje pomaknemo na vrh vidnega dela zaslona,
-    // da ima seznam predlogov čim več prostora.
-    setTimeout(() => {
-      wrapRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-    }, 300);
-  }
-
-  return (
-    <div className="relative flex-1" ref={wrapRef}>
-      <input
-        value={displayValue}
-        onChange={(e) => onQueryChange(e.target.value)}
-        onFocus={handleFocus}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Išči živilo (npr. jogurt, čips, čokolada ...)"
-        className="w-full text-[13px] px-2 py-1.5 rounded-sm outline-none"
-        style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}
-      />
-      {open && (
-        <div
-          className="absolute z-10 left-0 right-0 mt-1 rounded-sm overflow-y-auto"
-          style={{ background: COLOR.card, border: `1px solid ${COLOR.line}`, boxShadow: "0 4px 12px rgba(0,0,0,0.12)", maxHeight: 340 }}
-        >
-          <button
-            onMouseDown={() => onSelect("custom")}
-            className="w-full text-left px-2.5 py-2 text-[13px]"
-            style={{ borderBottom: `1px solid ${COLOR.line}`, color: COLOR.forest, background: COLOR.sageSoft }}
-          >
-            ✏️ Dodaj svoje živilo (ročno)
-          </button>
-          {q.length === 0 && (
-            <div className="px-2.5 py-1.5 text-[10px] uppercase tracking-wide" style={{ color: COLOR.sage }}>
-              Nekaj predlogov — ali začni tipkati za ožji izbor
-            </div>
-          )}
-          {q.length > 0 && matches.length === 0 && (
-            <div className="px-2.5 py-2 text-[12px]" style={{ color: COLOR.sage }}>
-              Ni zadetkov — poskusi "Dodaj svoje živilo" zgoraj.
-            </div>
-          )}
-          {matches.map((snack) => (
-            <button
-              key={snack.key}
-              onMouseDown={() => onSelect(snack.key)}
-              className="w-full text-left px-2.5 py-2"
-              style={{ borderBottom: `1px solid ${COLOR.line}` }}
-            >
-              <div className="text-[13px]" style={{ fontFamily: "Georgia, serif", color: COLOR.ink, lineHeight: 1.3 }}>
-                {snack.name}
-              </div>
-              <div className="text-[10px] mt-0.5" style={{ color: COLOR.sage }}>
-                {snack.category}
-              </div>
-            </button>
-          ))}
-          {q.length > 0 && pool.length > matches.length && (
-            <div className="px-2.5 py-1.5 text-[10px]" style={{ color: COLOR.sage }}>
-              + še {pool.length - matches.length} zadetkov — natipkaj več črk za ožji izbor
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function MobileMealCard({ slot, label, Icon, open, onToggle, code, setCode, options, mealExtras, setMealExtras, snackCatalog }) {
   const rows = mealExtras[slot] || [];
   const add = () => setMealExtras((prev) => ({ ...prev, [slot]: [...(prev[slot] || []), { snackIdx: "", qty: "" }] }));
   const update = (idx, field, value) => setMealExtras((prev) => ({ ...prev, [slot]: prev[slot].map((row, i) => i === idx ? { ...row, [field]: value } : row) }));
-  return <section className="rounded-md overflow-hidden" style={{ background: COLOR.card, border: `1px solid ${open ? COLOR.forest : COLOR.line}` }}>
-    <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-4 text-left"><span className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: open ? COLOR.sageSoft : COLOR.amberSoft, color: COLOR.amber }}><Icon size={22} strokeWidth={1.8} /></span><span className="flex-1 text-[18px] uppercase" style={{ fontFamily: "Georgia, serif", color: COLOR.forest }}>{label}</span>{open ? <ChevronUp size={22} /> : <ChevronDown size={22} />}</button>
-    {open ? <div className="px-4 pb-4"><label className="text-[11px] block mb-1" style={{ color: COLOR.sage }}>Kateri obrok naj se prilagodi?</label><select value={code} onChange={(e) => setCode(e.target.value)} className="w-full text-[16px] px-3 py-2 rounded-md outline-none" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}><option value="">—</option>{options.map((recipe) => <option key={recipe.code} value={recipe.code}>{recipe.code} · {recipe.title}</option>)}</select><div className="mt-4"><label className="text-[11px] uppercase tracking-wide" style={{ color: COLOR.sage }}>Dodana živila</label>{rows.map((row, idx) => <div className="flex items-center gap-2 mt-2" key={idx}><select value={findSnack(snackCatalog, row.snackIdx)?.key || row.snackIdx} onChange={(e) => update(idx, "snackIdx", e.target.value)} className="min-w-0 flex-1 text-[15px] px-2 py-2 rounded-md" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}><option value="">Izberi živilo</option>{snackCatalog.map((food) => <option key={food.key} value={food.key}>{food.name}</option>)}</select><input type="number" value={row.qty} placeholder="150" onChange={(e) => update(idx, "qty", e.target.value)} className="w-20 text-[15px] px-2 py-2 rounded-md" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.card }} /><span style={{ color: COLOR.sage }}>g</span><button onClick={() => setMealExtras((prev) => ({ ...prev, [slot]: prev[slot].filter((_, i) => i !== idx) }))} style={{ color: COLOR.danger }}><X size={20} /></button></div>)}<button onClick={add} className="mt-3 w-full py-3 rounded-md text-[16px]" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, color: COLOR.ink }}><Plus size={16} className="inline mr-2" />Dodaj še živilo</button></div></div> : <button onClick={onToggle} className="mx-4 mb-4 w-[calc(100%-2rem)] py-3 rounded-md text-[16px]" style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper }}><Plus size={16} className="inline mr-2" />Dodaj še živilo</button>}
-  </section>;
+  const remove = (idx) => {
+    setMealExtras((prev) => ({ ...prev, [slot]: prev[slot].filter((_, i) => i !== idx) }));
+  };
+
+  return (
+    <section
+      className="overflow-hidden rounded-md"
+      style={{ background: COLOR.card, border: `1px solid ${open ? COLOR.forest : COLOR.line}` }}
+    >
+      <button className="flex w-full items-center gap-3 px-4 py-4 text-left" onClick={onToggle} type="button">
+        <span
+          className="flex h-10 w-10 items-center justify-center rounded-full"
+          style={{ background: open ? COLOR.sageSoft : COLOR.amberSoft, color: COLOR.amber }}
+        >
+          <Icon size={22} strokeWidth={1.8} />
+        </span>
+        <span
+          className="flex-1 text-[18px] uppercase"
+          style={{ color: COLOR.forest, fontFamily: "Georgia, serif" }}
+        >
+          {label}
+        </span>
+        {open ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
+      </button>
+
+      {open ? (
+        <div className="px-4 pb-4">
+          <label className="mb-1 block text-[11px]" style={{ color: COLOR.sage }}>
+            Izberi recept
+          </label>
+          <select
+            className="w-full rounded-md px-3 py-2 text-[16px] outline-none"
+            onChange={(event) => setCode(event.target.value)}
+            style={{ background: COLOR.paper, border: `1px solid ${COLOR.line}`, fontFamily: "Georgia, serif" }}
+            value={code}
+          >
+            <option value="">—</option>
+            {options.map((recipe) => (
+              <option key={recipe.code} value={recipe.code}>
+                {recipe.code} · {recipe.title}
+              </option>
+            ))}
+          </select>
+
+          <div className="mt-4">
+            <label className="text-[11px] uppercase tracking-wide" style={{ color: COLOR.sage }}>
+              Dodana živila
+            </label>
+            {rows.map((row, idx) => (
+              <div className="mt-2 flex items-center gap-2" key={idx}>
+                <SnackPickerField
+                  onSelect={(value) => update(idx, "snackIdx", value)}
+                  snackCatalog={snackCatalog}
+                  value={findSnack(snackCatalog, row.snackIdx)?.key || row.snackIdx}
+                />
+                <input
+                  className="w-20 rounded-md px-2 py-2 text-[15px]"
+                  min="0"
+                  onChange={(event) => update(idx, "qty", event.target.value)}
+                  placeholder="150"
+                  style={{ background: COLOR.card, border: `1px solid ${COLOR.line}` }}
+                  type="number"
+                  value={row.qty}
+                />
+                <span style={{ color: COLOR.sage }}>g</span>
+                <button
+                  aria-label={`Odstrani živilo iz obroka ${label.toLowerCase()}`}
+                  onClick={() => remove(idx)}
+                  style={{ color: COLOR.danger }}
+                  type="button"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            ))}
+            <button
+              className="mt-3 w-full rounded-md py-3 text-[16px]"
+              onClick={add}
+              style={{ background: COLOR.paper, border: `1px solid ${COLOR.line}`, color: COLOR.ink }}
+              type="button"
+            >
+              <Plus className="mr-2 inline" size={16} />
+              Dodaj še živilo
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          className="mx-4 mb-4 w-[calc(100%-2rem)] rounded-md py-3 text-[16px]"
+          onClick={onToggle}
+          style={{ background: COLOR.paper, border: `1px solid ${COLOR.line}` }}
+          type="button"
+        >
+          <Plus className="mr-2 inline" size={16} />
+          Dodaj še živilo
+        </button>
+      )}
+    </section>
+  );
 }
 
 function DayPlannerScreen({ plan, wb, selectedDay, setSelectedDay }) {
@@ -1142,234 +1164,27 @@ function DayPlannerScreen({ plan, wb, selectedDay, setSelectedDay }) {
         tortilja) pri prilagajanju ostanejo nespremenjene — spreminjajo se le priloge in ostale sestavine.
       </p>
 
-      <div className="space-y-3 mb-5">
+      <div className="mb-3 space-y-3">
         <MobileMealCard slot="zajtrk" label="Zajtrk" Icon={Coffee} open={openMeal === "zajtrk"} onToggle={() => setOpenMeal(openMeal === "zajtrk" ? "" : "zajtrk")} code={zajtrkCode} setCode={setZajtrkCode} options={recipeOptions.breakfast} mealExtras={mealExtras} setMealExtras={setMealExtras} snackCatalog={snackCatalog} />
         <MobileMealCard slot="kosilo" label="Kosilo" Icon={Sun} open={openMeal === "kosilo"} onToggle={() => setOpenMeal(openMeal === "kosilo" ? "" : "kosilo")} code={kosiloCode} setCode={setKosiloCode} options={recipeOptions.lunch} mealExtras={mealExtras} setMealExtras={setMealExtras} snackCatalog={snackCatalog} />
         <MobileMealCard slot="vecerja" label="Večerja" Icon={Moon} open={openMeal === "vecerja"} onToggle={() => setOpenMeal(openMeal === "vecerja" ? "" : "vecerja")} code={vecerjaCode} setCode={setVecerjaCode} options={recipeOptions.breakfast} mealExtras={mealExtras} setMealExtras={setMealExtras} snackCatalog={snackCatalog} />
       </div>
-      <div className="rounded-sm overflow-hidden hidden" style={{ background: COLOR.card, border: `1px solid ${COLOR.line}` }}>
-        <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ borderBottom: `1px solid ${COLOR.line}` }}>
-          <div>
-            <label className="text-[10px] uppercase tracking-wide block mb-1" style={{ color: COLOR.sage }}>
-              Zajtrk
-            </label>
-            <select
-              value={zajtrkCode}
-              onChange={(e) => setZajtrkCode(e.target.value)}
-              className="w-full text-[13px] px-2 py-1.5 rounded-sm outline-none"
-              style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}
-            >
-              <option value="">—</option>
-              {recipeOptions.breakfast.map((r) => (
-                <option key={r.code} value={r.code}>
-                  {r.code} · {r.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-wide block mb-1" style={{ color: COLOR.sage }}>
-              Kosilo
-            </label>
-            <select
-              value={kosiloCode}
-              onChange={(e) => setKosiloCode(e.target.value)}
-              className="w-full text-[13px] px-2 py-1.5 rounded-sm outline-none"
-              style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}
-            >
-              <option value="">—</option>
-              {recipeOptions.lunch.map((r) => (
-                <option key={r.code} value={r.code}>
-                  {r.code} · {r.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-wide block mb-1" style={{ color: COLOR.sage }}>
-              Večerja
-            </label>
-            <select
-              value={vecerjaCode}
-              onChange={(e) => setVecerjaCode(e.target.value)}
-              className="w-full text-[13px] px-2 py-1.5 rounded-sm outline-none"
-              style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}
-            >
-              <option value="">—</option>
-              {recipeOptions.breakfast.map((r) => (
-                <option key={r.code} value={r.code}>
-                  {r.code} · {r.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-wide block mb-1" style={{ color: COLOR.sage }}>
-              Kateri obrok naj se prilagodi?
-            </label>
-            <select
-              value={adjustSlot}
-              onChange={(e) => setAdjustSlot(e.target.value)}
-              className="w-full text-[13px] px-2 py-1.5 rounded-sm outline-none"
-              style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}
-            >
-              <option value="zajtrk">Zajtrk</option>
-              <option value="kosilo">Kosilo</option>
-              <option value="vecerja">Večerja</option>
-            </select>
-          </div>
-        </div>
 
-        <div className="px-4 py-3" style={{ borderBottom: `1px solid ${COLOR.line}` }}>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-[10px] uppercase tracking-wide" style={{ color: COLOR.sage }}>
-              Malica / sladica (lahko dodaš več)
-            </label>
-            <button onClick={addSnack} className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-sm" style={{ background: COLOR.forest, color: "#FFFFFF" }}>
-              <Plus size={12} /> Dodaj
-            </button>
-          </div>
-          {snacks.length === 0 && (
-            <p className="text-[12px]" style={{ color: COLOR.sage }}>
-              Brez malice — pritisni "Dodaj", če želiš vključiti npr. jabolko in proteinski puding.
-            </p>
-          )}
-          <div className="space-y-2">
-            {snacks.map((s, idx) => {
-              const item = findSnack(snackCatalog, s.snackIdx);
-              const isCustom = s.snackIdx === "custom";
-              return (
-                <div key={idx} className="rounded-sm" style={isCustom ? { border: `1px solid ${COLOR.line}`, padding: 8 } : null}>
-                  <div className="flex items-center gap-2">
-                    <SnackAutocomplete
-                      snackCatalog={snackCatalog}
-                      value={s.snackIdx}
-                      query={s.query || ""}
-                      onQueryChange={(v) => updateSnack(idx, "query", v)}
-                      onSelect={(v) => updateSnack(idx, "snackIdx", v)}
-                    />
-                    {!isCustom && (
-                      <input
-                        type="number"
-                        min="0"
-                        disabled={!item}
-                        placeholder={item ? String(item.defaultQty) : "g"}
-                        value={s.qty}
-                        onChange={(e) => updateSnack(idx, "qty", e.target.value)}
-                        className="w-16 text-right text-[13px] px-2 py-1.5 rounded-sm outline-none"
-                        style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "'Courier New', monospace", opacity: item ? 1 : 0.5 }}
-                      />
-                    )}
-                    {!isCustom && (
-                      <span className="text-[11px]" style={{ color: COLOR.sage }}>
-                        g
-                      </span>
-                    )}
-                    <button onClick={() => removeSnack(idx)} style={{ color: COLOR.danger }}>
-                      <X size={14} />
-                    </button>
-                  </div>
-                  {isCustom && (
-                    <div className="mt-2 space-y-1.5">
-                      <input
-                        value={s.customName}
-                        onChange={(e) => updateSnack(idx, "customName", e.target.value)}
-                        placeholder="Ime živila (npr. domača pica)"
-                        className="w-full text-[13px] px-2 py-1.5 rounded-sm outline-none"
-                        style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "Georgia, serif" }}
-                      />
-                      <p className="text-[10px]" style={{ color: COLOR.sage }}>
-                        Hranilne vrednosti preveri na embalaži (poglej "Hranilna vrednost na 100 g") ali na spletu, nato
-                        vnesi spodaj. Za drugačno količino od 100 g spremeni polje "g" spodaj.
-                      </p>
-                      <div className="grid grid-cols-4 gap-1.5">
-                        <div>
-                          <label className="text-[9px]" style={{ color: COLOR.sage }}>
-                            Kcal/100g
-                          </label>
-                          <input
-                            type="number"
-                            value={s.customKcal}
-                            onChange={(e) => updateSnack(idx, "customKcal", e.target.value)}
-                            className="w-full text-[12px] px-1.5 py-1 rounded-sm outline-none"
-                            style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "'Courier New', monospace" }}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px]" style={{ color: COLOR.sage }}>
-                            B (g)
-                          </label>
-                          <input
-                            type="number"
-                            value={s.customP}
-                            onChange={(e) => updateSnack(idx, "customP", e.target.value)}
-                            className="w-full text-[12px] px-1.5 py-1 rounded-sm outline-none"
-                            style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "'Courier New', monospace" }}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px]" style={{ color: COLOR.sage }}>
-                            M (g)
-                          </label>
-                          <input
-                            type="number"
-                            value={s.customF}
-                            onChange={(e) => updateSnack(idx, "customF", e.target.value)}
-                            className="w-full text-[12px] px-1.5 py-1 rounded-sm outline-none"
-                            style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "'Courier New', monospace" }}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px]" style={{ color: COLOR.sage }}>
-                            OH (g)
-                          </label>
-                          <input
-                            type="number"
-                            value={s.customC}
-                            onChange={(e) => updateSnack(idx, "customC", e.target.value)}
-                            className="w-full text-[12px] px-1.5 py-1 rounded-sm outline-none"
-                            style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "'Courier New', monospace" }}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-[10px]" style={{ color: COLOR.sage }}>
-                          Tvoja količina:
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="100"
-                          value={s.qty}
-                          onChange={(e) => updateSnack(idx, "qty", e.target.value)}
-                          className="w-16 text-right text-[12px] px-1.5 py-1 rounded-sm outline-none"
-                          style={{ border: `1px solid ${COLOR.line}`, background: COLOR.paper, fontFamily: "'Courier New', monospace" }}
-                        />
-                        <span className="text-[10px]" style={{ color: COLOR.sage }}>
-                          g
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      <MealAdjustmentControl dayTarget={dayTarget} onChange={setAdjustSlot} value={adjustSlot} />
 
-        <div className="px-4 py-3 grid grid-cols-4 gap-2" style={{ background: COLOR.forest }}>
-          <StatPill label="Skupaj dan" value={round1(dayTotal.kcal)} unit="kcal" tone="#FFFFFF" />
-          <StatPill label="Beljakovine" value={round1(dayTotal.p)} unit="g" tone="#FFFFFF" />
-          <StatPill label="Maščobe" value={round1(dayTotal.f)} unit="g" tone="#FFFFFF" />
-          <StatPill label="OH" value={round1(dayTotal.c)} unit="g" tone="#FFFFFF" />
-        </div>
-        {overBudget && (
-          <p className="text-[11px] px-4 py-2" style={{ background: COLOR.amberSoft, color: "#8A4B23" }}>
-            Ostala dva obroka + malica že skoraj porabijo celoten dnevni proračun — {slotLabels[adjustSlot].toLowerCase()} bo
-            zato zelo majhen/-a. Izberi drug obrok za prilagoditev ali manjšo malico.
-          </p>
-        )}
-      </div>
+      <SnackSection
+        onAdd={addSnack}
+        onRemove={removeSnack}
+        onUpdate={updateSnack}
+        snackCatalog={snackCatalog}
+        snacks={snacks}
+      />
+      <DayMacroSummary
+        adjustSlot={adjustSlot}
+        dayTotal={dayTotal}
+        overBudget={overBudget}
+        slotLabels={slotLabels}
+      />
 
       {(zajtrk || kosilo || snackEntries.length > 0 || vecerja) && (
         <div className="mt-5">

@@ -17,3 +17,125 @@ input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
+.snack-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(18, 36, 26, 0.52);
+  backdrop-filter: blur(3px);
+  animation: snack-picker-fade-in 180ms ease-out both;
+}
+
+.snack-picker-panel {
+  display: flex;
+  width: 100%;
+  max-height: min(88dvh, 760px);
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #E1D9C7;
+  border-radius: 22px 22px 0 0;
+  background: #FFFFFF;
+  box-shadow: 0 -18px 60px rgba(18, 36, 26, 0.2);
+  outline: none;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: snack-picker-slide-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.snack-picker-handle {
+  width: 42px;
+  height: 4px;
+  flex: 0 0 auto;
+  margin: 9px auto 0;
+  border-radius: 999px;
+  background: #C8CFC6;
+}
+
+.snack-picker-results {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid #E1D9C7;
+  scrollbar-color: #A9B8AB transparent;
+}
+
+.snack-picker-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #EEE8DC;
+  transition: background-color 140ms ease;
+}
+
+.snack-picker-option:hover {
+  background: #F6F2E9 !important;
+}
+
+.snack-picker-option:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #557A62;
+  outline-offset: -2px;
+}
+
+@media (min-width: 640px) {
+  .snack-picker-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .snack-picker-panel {
+    width: min(100%, 560px);
+    max-height: min(82vh, 720px);
+    border-radius: 18px;
+    padding-bottom: 0;
+    box-shadow: 0 24px 80px rgba(18, 36, 26, 0.28);
+    animation-name: snack-picker-dialog-in;
+  }
+
+  .snack-picker-handle {
+    display: none;
+  }
+
+  .snack-picker-option {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+}
+
+@keyframes snack-picker-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes snack-picker-slide-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes snack-picker-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snack-picker-backdrop,
+  .snack-picker-panel {
+    animation: none;
+  }
+
+  .snack-picker-option {
+    transition: none;
+  }
+}
